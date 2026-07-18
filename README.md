@@ -1,93 +1,194 @@
-# Kuberya - intAtith Chandran
+# Fit Logger
 
+An AI-powered Progressive Web App for workout logging, progress analytics, and
+adaptive workout-plan generation.
 
+Built as a single Django project using Django Templates. There is no separate
+JavaScript frontend — JavaScript is used only where the browser genuinely
+requires it (dynamic set inputs, IndexedDB, offline sync, the service worker,
+and chart rendering).
 
-## Getting started
+> **Status:** Phase 1 of 13 complete (Django foundation). This README grows with
+> each phase and is finalised in Phase 13.
 
-To make it easy for you to get started with GitLab, here's a list of recommended next steps.
+## Problem
 
-Already a pro? Just edit this README.md and make it your own. Want to make it easy? [Use the template at the bottom](#editing-this-readme)!
+Lifters forget what they lifted last session. Notes-app records are
+unstructured and impossible to analyse, so it is hard to tell whether strength
+or training volume is actually improving — and beginners end up following
+routines with no real progression.
 
-## Add your files
+## Solution
 
-* [Create](https://docs.gitlab.com/user/project/repository/web_editor/#create-a-file) or [upload](https://docs.gitlab.com/user/project/repository/web_editor/#upload-a-file) files
-* [Add files using the command line](https://docs.gitlab.com/topics/git/add_files/#add-files-to-a-git-repository) or push an existing Git repository with the following command:
+Log each set in seconds, see your previous performance for an exercise the
+moment you select it, and get deterministic analytics (max weight, volume,
+estimated 1RM, adherence, personal records, plateau signals) that also feed an
+AI planner which adapts your next plan to your measured progress.
+
+## Technology stack
+
+| Layer | Choice |
+|---|---|
+| Backend | Python 3.14, Django 6.0 |
+| Frontend | Django Templates, Bootstrap 5, vanilla JavaScript |
+| Database | PostgreSQL (via Django ORM) |
+| Analytics | Python + pandas |
+| Charts | Plotly.js (chart data prepared server-side in Python) |
+| AI | OpenAI API (`gpt-4o-mini`, official Python SDK, server-side only) — see deviation note below |
+| Offline | Web App Manifest, Service Worker, Cache API, IndexedDB |
+
+## Architecture
 
 ```
-cd existing_repo
-git remote add origin https://gitlab.com/team-kuberyaai/kuberya-intatith-chandran.git
-git branch -M main
-git push -uf origin main
+Browser (PWA)  ->  Django views + templates  ->  service layer  ->  Django ORM  ->  PostgreSQL
 ```
 
-## Integrate with your tools
+Views stay thin. All business logic lives in each app's `services.py`:
 
-* [Set up project integrations](https://gitlab.com/team-kuberyaai/kuberya-intatith-chandran/-/settings/integrations)
+- `workouts/services.py` — session and set lifecycle, previous-performance lookup
+- `analytics/services.py` — every metric, computed deterministically in Python
+- `ai_planner/services.py` — Claude call and persistence, with `prompts.py` and `validators.py`
 
-## Collaborate with your team
+The AI never calculates metrics. Python computes them and passes a summary to
+the model as context.
 
-* [Invite team members and collaborators](https://docs.gitlab.com/user/project/members/)
-* [Create a new merge request](https://docs.gitlab.com/user/project/merge_requests/creating_merge_requests/)
-* [Automatically close issues from merge requests](https://docs.gitlab.com/user/project/issues/managing_issues/#closing-issues-automatically)
-* [Enable merge request approvals](https://docs.gitlab.com/user/project/merge_requests/approvals/)
-* [Set auto-merge](https://docs.gitlab.com/user/project/merge_requests/auto_merge/)
+### Deviation from the original specification
 
-## Test and Deploy
+The specification named the **Anthropic Claude API**. This build uses the
+**OpenAI API** (`gpt-4o-mini`) instead, because that is the key the project
+owner had available.
 
-Use the built-in continuous integration in GitLab.
+The change is contained entirely within `ai_planner/services.py` — that module
+is the only code in the project that talks to an AI provider. Prompts
+(`prompts.py`), schema validation (`validators.py`), storage (`models.py`) and
+every template are provider-agnostic. Swapping back to Anthropic means editing
+one function, `_call_model`, and the two environment variables it reads.
 
-* [Get started with GitLab CI/CD](https://docs.gitlab.com/ci/quick_start/)
-* [Analyze your code for known vulnerabilities with Static Application Security Testing (SAST)](https://docs.gitlab.com/user/application_security/sast/)
-* [Deploy to Kubernetes, Amazon EC2, or Amazon ECS using Auto Deploy](https://docs.gitlab.com/topics/autodevops/requirements/)
-* [Use pull-based deployments for improved Kubernetes management](https://docs.gitlab.com/user/clusters/agent/)
-* [Set up protected environments](https://docs.gitlab.com/ci/environments/protected_environments/)
+Everything else in the specification is followed as written.
 
-***
+## Project structure
 
-# Editing this README
+The project is organised the Django way: **one app per feature domain**, and
+inside every app the same separation of concerns — data, validation, routing,
+business logic and tests each in their own module. To find anything, you go to
+its feature and then to the layer.
 
-When you're ready to make this README your own, just edit this file and use the handy template below (or feel free to structure it however you want - this is just a starting point!). Thanks to [makeareadme.com](https://www.makeareadme.com/) for this template.
+```
+fitlogger/
+├── manage.py
+├── requirements.txt
+├── .env                    # local secrets — never committed
+├── .env.example
+├── README.md
+├── fitlogger/              # project config: settings, root urls, wsgi/asgi,
+│                           # context processors, project-level tests
+├── users/                  # accounts, profiles, RBAC, calorie + body metrics
+├── workouts/               # exercise library, sessions, sets
+├── analytics/              # metrics, progress + wellness dashboards, nutrition
+├── ai_planner/             # AI-backed workout-plan generation
+├── assistant/              # Joey — the RAG chatbot
+├── messaging/              # trainee <-> admin conversations
+├── notifications/          # in-app notifications
+├── adminportal/            # the admin application (dashboard, analytics, ...)
+├── templates/              # server-rendered HTML, grouped by app
+├── static/                 # css / js / images
+└── knowledge/              # source PDFs for the chatbot — never committed
+```
 
-## Suggestions for a good README
+Every app follows the same internal layout, so any feature is read the same way:
 
-Every project is different, so consider which of these sections apply to yours. The sections used in the template are suggestions for most open source projects. Also keep in mind that while a README can be too long and detailed, too long is better than too short. If you think your README is too long, consider utilizing another form of documentation rather than cutting out information.
+```
+<app>/
+├── models.py       # data — ORM models and their constraints
+├── forms.py        # input validation (the "schema" layer)
+├── views.py        # thin request handlers — HTTP in, HTTP out
+├── urls.py         # routing for this feature
+├── services.py     # all business logic; the only place that does real work
+├── admin.py        # Django-admin registration
+├── apps.py         # app config
+├── migrations/     # per-change schema migrations, auto-generated
+└── tests/          # tests, split by concern (a single tests.py when small)
+```
 
-## Name
-Choose a self-explaining name for your project.
+Some apps add focused helper modules — `decorators.py` (RBAC), `validators.py`
+and `prompts.py` (AI planner), `nutrition_data.py` (analytics) — the equivalent
+of a `utils/` layer, kept next to the feature that uses them.
 
-## Description
-Let people know what your project can do specifically. Provide context and add a link to any reference visitors might be unfamiliar with. A list of Features or a Background subsection can also be added here. If there are alternatives to your project, this is a good place to list differentiating factors.
+These are the same best-practice rules a `routers/ models/ schema/ services/
+tests/` layout encodes, in Django's own idiom: routing in `urls.py`/`views.py`,
+the schema layer in `forms.py`, business logic in `services.py`, migrations
+per app, and tests mirroring each feature.
 
-## Badges
-On some READMEs, you may see small images that convey metadata, such as whether or not all the tests are passing for the project. You can use Shields to add some to your README. Many services also have instructions for adding a badge.
+## Prerequisites
 
-## Visuals
-Depending on what you are making, it can be a good idea to include screenshots or even a video (you'll frequently see GIFs rather than actual videos). Tools like ttygif can help, but check out Asciinema for a more sophisticated method.
+- Python 3.12+ (developed on 3.14)
+- PostgreSQL 16+
+- Git (optional but recommended)
 
-## Installation
-Within a particular ecosystem, there may be a common way of installing things, such as using Yarn, NuGet, or Homebrew. However, consider the possibility that whoever is reading your README is a novice and would like more guidance. Listing specific steps helps remove ambiguity and gets people to using your project as quickly as possible. If it only runs in a specific context like a particular programming language version or operating system or has dependencies that have to be installed manually, also add a Requirements subsection.
+## Setup (Windows / PowerShell)
 
-## Usage
-Use examples liberally, and show the expected output if you can. It's helpful to have inline the smallest example of usage that you can demonstrate, while providing links to more sophisticated examples if they are too long to reasonably include in the README.
+**1. Create and activate the virtual environment**
 
-## Support
-Tell people where they can go to for help. It can be any combination of an issue tracker, a chat room, an email address, etc.
+```powershell
+cd C:\Users\adith\fitlogger
+python -m venv venv
+.\venv\Scripts\Activate.ps1
+```
 
-## Roadmap
-If you have ideas for releases in the future, it is a good idea to list them in the README.
+If activation is blocked by execution policy:
 
-## Contributing
-State if you are open to contributions and what your requirements are for accepting them.
+```powershell
+Set-ExecutionPolicy -Scope CurrentUser -ExecutionPolicy RemoteSigned
+```
 
-For people who want to make changes to your project, it's helpful to have some documentation on how to get started. Perhaps there is a script that they should run or some environment variables that they need to set. Make these steps explicit. These instructions could also be useful to your future self.
+**2. Install dependencies**
 
-You can also document commands to lint the code or run tests. These steps help to ensure high code quality and reduce the likelihood that the changes inadvertently break something. Having instructions for running tests is especially helpful if it requires external setup, such as starting a Selenium server for testing in a browser.
+```powershell
+pip install -r requirements.txt
+```
 
-## Authors and acknowledgment
-Show your appreciation to those who have contributed to the project.
+**3. Create the PostgreSQL database** (required from Phase 2 onward)
 
-## License
-For open source projects, say how it is licensed.
+```powershell
+& "C:\Program Files\PostgreSQL\17\bin\createdb.exe" -U postgres fitlogger
+```
 
-## Project status
-If you have run out of energy or time for your project, put a note at the top of the README saying that development has slowed down or stopped completely. Someone may choose to fork your project or volunteer to step in as a maintainer or owner, allowing your project to keep going. You can also make an explicit request for maintainers.
+**4. Configure environment variables**
+
+```powershell
+Copy-Item .env.example .env
+```
+
+Then edit `.env` and set `DJANGO_SECRET_KEY`, `DATABASE_PASSWORD`, and
+`OPENAI_API_KEY`. Generate a secret key with:
+
+```powershell
+python -c "from django.core.management.utils import get_random_secret_key; print(get_random_secret_key())"
+```
+
+**5. Run checks and start the server**
+
+```powershell
+python manage.py check
+python manage.py runserver
+```
+
+Open <http://127.0.0.1:8000/>.
+
+## Commands
+
+```powershell
+python manage.py check           # system checks
+python manage.py migrate         # apply migrations       (Phase 2+)
+python manage.py seed_exercises  # seed exercise library  (Phase 4+)
+python manage.py createsuperuser # admin access           (Phase 2+)
+python manage.py test            # run the test suite     (Phase 3+)
+```
+
+## Security notes
+
+- No secret key, database password, or API key is committed. Everything sensitive
+  is read from environment variables.
+- CSRF protection stays enabled; Django session authentication is used.
+- Data ownership is always resolved from `request.user`, never from a client-supplied ID.
+- AI API calls (OpenAI) are server-side only. The key never reaches the browser.

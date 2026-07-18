@@ -1,0 +1,169 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Progress — Fit Logger{% endblock %}
+
+{% block content %}
+
+  <div class="fl-enter mb-3">
+    <p class="fl-eyebrow mb-1">Analytics</p>
+    <h1 class="h3 mb-0">Progress</h1>
+  </div>
+
+  {# Overall training consistency — not exercise-specific. #}
+  <div class="fl-card reveal mb-3">
+    <div class="fl-section-head">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>
+      <h2 class="h6 text-uppercase text-secondary mb-0">Consistency</h2>
+    </div>
+    <div class="row g-2">
+      <div class="col-6">
+        <div class="fl-stat fl-stat-hero">
+          <span class="fl-stat-value">{{ average_weekly_workouts }}</span>
+          <span class="fl-stat-label">Avg workouts / week</span>
+        </div>
+      </div>
+      <div class="col-6">
+        <div class="fl-stat fl-stat-hero">
+          <span class="fl-stat-value">
+            {% if adherence.average_adherence_percentage is not None %}
+              {{ adherence.average_adherence_percentage|floatformat:0 }}%
+            {% else %}—{% endif %}
+          </span>
+          <span class="fl-stat-label">Adherence vs {{ planned_days_per_week }}/week</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="fl-card reveal mb-3">
+    <h2 class="h6 text-uppercase text-secondary mb-2">Workouts per week</h2>
+    <div id="chart-weekly" class="fl-chart"></div>
+    <p id="empty-weekly" class="text-secondary small mb-0 d-none">
+      No completed workouts yet.
+    </p>
+  </div>
+
+  {# Exercise picker #}
+  <form method="get" id="exercise-picker" class="fl-card reveal mb-3">
+    <label for="exercise-select" class="form-label">Exercise</label>
+    <div class="d-flex gap-2">
+      <select name="exercise" id="exercise-select" class="form-select form-select-lg">
+        <option value="">Choose an exercise…</option>
+        {% for group_name, exercises in exercise_groups.items %}
+          <optgroup label="{{ group_name }}">
+            {% for exercise in exercises %}
+              <option value="{{ exercise.id }}"
+                {% if selected_exercise and exercise.id == selected_exercise.id %}selected{% endif %}>
+                {{ exercise.name }}
+              </option>
+            {% endfor %}
+          </optgroup>
+        {% endfor %}
+      </select>
+      <button type="submit" class="btn btn-outline-light" id="exercise-go">Go</button>
+    </div>
+  </form>
+
+  {% if selected_exercise %}
+    {% if summary.has_data %}
+
+      <div class="fl-card reveal mb-3">
+        <h2 class="h5 mb-1">{{ selected_exercise.name }}</h2>
+        <p class="text-secondary small mb-3">
+          {{ summary.sessions_logged }} session{{ summary.sessions_logged|pluralize }} logged
+        </p>
+
+        <div class="row g-2">
+          <div class="col-6">
+            <div class="fl-stat">
+              <span class="fl-stat-value">{{ summary.current_max_weight|floatformat:"-2" }} kg</span>
+              <span class="fl-stat-label">Heaviest weight</span>
+            </div>
+          </div>
+          <div class="col-6">
+            <div class="fl-stat">
+              <span class="fl-stat-value">{{ summary.best_estimated_1rm|floatformat:1 }} kg</span>
+              <span class="fl-stat-label">Best estimated 1RM</span>
+            </div>
+          </div>
+          <div class="col-6">
+            <div class="fl-stat">
+              <span class="fl-stat-value">
+                {% if summary.estimated_1rm_change_percentage is not None %}
+                  {% if summary.estimated_1rm_change_percentage > 0 %}+{% endif %}{{ summary.estimated_1rm_change_percentage|floatformat:1 }}%
+                {% else %}—{% endif %}
+              </span>
+              <span class="fl-stat-label">Recent 1RM change</span>
+            </div>
+          </div>
+          <div class="col-6">
+            <div class="fl-stat">
+              <span class="fl-stat-value">{{ summary.recent_volume|floatformat:0 }} kg</span>
+              <span class="fl-stat-label">Recent volume load</span>
+            </div>
+          </div>
+        </div>
+
+        {% if summary.potential_plateau %}
+          <div class="alert alert-warning mt-3 mb-0" role="alert">
+            <strong>Potential plateau.</strong>
+            Your estimated 1RM has not improved much across your recent sessions.
+            This is a simple app heuristic, not a diagnosis — it may just be time
+            to vary rep ranges, add volume, or take a lighter week.
+          </div>
+        {% endif %}
+
+        <p class="text-secondary small mt-3 mb-0">
+          Estimated 1RM uses the Epley formula. It is an estimate from your
+          logged sets, not a measured one-rep max.
+        </p>
+      </div>
+
+      <div class="fl-card reveal mb-3">
+        <h2 class="h6 text-uppercase text-secondary mb-2">Max weight over time</h2>
+        <div id="chart-max-weight" class="fl-chart"></div>
+      </div>
+
+      <div class="fl-card reveal mb-3">
+        <h2 class="h6 text-uppercase text-secondary mb-2">Estimated 1RM over time</h2>
+        <div id="chart-1rm" class="fl-chart"></div>
+      </div>
+
+      <div class="fl-card reveal mb-3">
+        <h2 class="h6 text-uppercase text-secondary mb-1">Session volume load</h2>
+        <p class="text-secondary small mb-2">
+          Total external weight moved during the workout, calculated as the sum
+          of (weight × reps) for every set. Helps track your overall training
+          workload and monitor progressive overload over time.
+        </p>
+        <div id="chart-volume" class="fl-chart"></div>
+      </div>
+
+    {% else %}
+      <div class="fl-card reveal">
+        <h2 class="h5 mb-2">{{ selected_exercise.name }}</h2>
+        <p class="text-secondary mb-0">
+          No completed workouts with this exercise yet. Log it in a workout and
+          finish the session, and your progress will appear here.
+        </p>
+      </div>
+    {% endif %}
+
+  {% else %}
+    <div class="fl-card reveal text-center">
+      <span class="fl-empty-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18"/><path d="m7 14 4-4 3 3 5-6"/></svg></span>
+      <p class="text-secondary mb-0">
+        Choose an exercise above to see your strength trends.
+      </p>
+    </div>
+  {% endif %}
+
+{% endblock %}
+
+{% block scripts %}
+  {{ charts|json_script:"chart-data" }}
+  {{ exercise_name|json_script:"exercise-name" }}
+  <script src="https://cdn.jsdelivr.net/npm/plotly.js-dist-min@2.32.0/plotly.min.js"></script>
+  <script src="{% static 'js/charts.js' %}"></script>
+{% endblock %}

@@ -1,0 +1,110 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Analytics — Admin — Fit Logger{% endblock %}
+
+{% block content %}
+
+  <div class="fl-enter mb-3">
+    <p class="fl-eyebrow mb-1">Admin</p>
+    <h1 class="h3 mb-0">Analytics</h1>
+    <p class="text-secondary small mb-0">
+      {{ analytics.total_trainees }} trainee{{ analytics.total_trainees|pluralize }} on the platform.
+    </p>
+  </div>
+
+  {% if analytics.total_trainees == 0 %}
+    <div class="fl-card reveal text-center">
+      <span class="fl-empty-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18"/><path d="m7 14 4-4 3 3 5-6"/></svg></span>
+      <p class="mb-1">No trainees yet.</p>
+      <p class="text-secondary small mb-0">Charts appear once people sign up.</p>
+    </div>
+  {% else %}
+
+    {# --- 1. User growth, with the range toggle --- #}
+    <div class="fl-card reveal mb-3">
+      <div class="d-flex justify-content-between align-items-center flex-wrap gap-2" style="margin-bottom:.75rem">
+        <div class="fl-section-head mb-0">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18"/><path d="m7 14 4-4 3 3 5-6"/></svg>
+          <h2 class="h6 text-uppercase text-secondary small mb-0">User growth</h2>
+        </div>
+        <div class="btn-group btn-group-sm" role="group" aria-label="Time range">
+          {% for key, label in ranges %}
+            <a href="?range={{ key }}"
+               class="btn {% if analytics.range == key %}btn-success{% else %}btn-outline-light{% endif %}">{{ label }}</a>
+          {% endfor %}
+        </div>
+      </div>
+      <div class="fl-chart-scroll">
+        <div id="chart-growth"></div>
+      </div>
+    </div>
+
+    {# --- 2. Active users --- #}
+    <div class="fl-card reveal mb-3">
+      <div class="fl-section-head" style="margin-bottom:.75rem">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/></svg>
+        <h2 class="h6 text-uppercase text-secondary small mb-0">Active users</h2>
+      </div>
+      <p class="text-secondary small mb-2">Daily, weekly and monthly. Hover to see who.</p>
+      <div id="chart-active" class="fl-chart"></div>
+    </div>
+
+    {# --- 3. Most active weekdays (from completed workouts) --- #}
+    <div class="fl-card reveal mb-3">
+      <div class="fl-section-head" style="margin-bottom:.75rem">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>
+        <h2 class="h6 text-uppercase text-secondary small mb-0">Most active days</h2>
+      </div>
+      <p class="text-secondary small mb-2">Completed workouts by weekday, across all trainees.</p>
+      <div id="chart-weekday" class="fl-chart"></div>
+    </div>
+
+    {# --- 4. User goal preferences --- #}
+    <div class="fl-card reveal mb-3">
+      <div class="fl-section-head" style="margin-bottom:.75rem">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="5"/><circle cx="12" cy="12" r="1"/></svg>
+        <h2 class="h6 text-uppercase text-secondary small mb-0">User goal preferences</h2>
+      </div>
+      {% if analytics.goals %}
+        <div id="chart-goals" class="fl-chart"></div>
+      {% else %}
+        <p class="text-secondary small mb-0 py-3 text-center">
+          Goal and experience breakdowns stay hidden until at least
+          {{ analytics.min_trainees }} trainees have signed up — below that, a
+          single bar would identify a specific person's private goal.
+        </p>
+      {% endif %}
+    </div>
+
+    {# --- 5. User experience distribution --- #}
+    {% if analytics.experience %}
+      <div class="fl-card reveal mb-3">
+        <div class="fl-section-head" style="margin-bottom:.75rem">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2 2 7l10 5 10-5-10-5Z"/><path d="M2 17l10 5 10-5M2 12l10 5 10-5"/></svg>
+          <h2 class="h6 text-uppercase text-secondary small mb-0">User experience distribution</h2>
+        </div>
+        <div id="chart-experience" class="fl-chart"></div>
+      </div>
+    {% endif %}
+
+    {# --- 6. Sex distribution --- #}
+    <div class="fl-card reveal mb-3">
+      <div class="fl-section-head" style="margin-bottom:.75rem">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="5"/><path d="M12 13v8M9 18h6"/></svg>
+        <h2 class="h6 text-uppercase text-secondary small mb-0">Sex distribution</h2>
+      </div>
+      <div id="chart-sex" class="fl-chart"></div>
+    </div>
+
+  {% endif %}
+
+{% endblock %}
+
+{% block scripts %}
+  {% if analytics.total_trainees > 0 %}
+    {{ analytics|json_script:"analytics-data" }}
+    <script src="https://cdn.jsdelivr.net/npm/plotly.js-dist-min@2.32.0/plotly.min.js"></script>
+    <script src="{% static 'js/admin_analytics.js' %}"></script>
+  {% endif %}
+{% endblock %}

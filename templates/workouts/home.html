@@ -1,0 +1,230 @@
+{% extends "base.html" %}
+
+{% comment %}
+  The dashboard. Reordered around a simple question — "what do I do right now?"
+  The answer (start or resume) is the first thing on screen and the only filled
+  button; everything below is context, ordered by how often it is needed.
+{% endcomment %}
+
+{% block title %}Home — Fit Logger{% endblock %}
+
+{% block content %}
+
+  {# ---------- Hero: greeting + this week's ring ---------- #}
+  <div class="fl-dash-hero fl-enter mb-3">
+    <div class="fl-dash-grid">
+      <div>
+        <div class="d-flex align-items-center gap-3 mb-3">
+          <span class="fl-avatar" aria-hidden="true">{{ user.username|first|upper }}</span>
+          <div>
+            <p class="fl-eyebrow mb-1">
+              {% if active_session %}Workout in progress{% else %}Let's move{% endif %}
+            </p>
+            <h1 class="h3 mb-0">Hi, {{ user.username }}</h1>
+          </div>
+        </div>
+
+        <p class="text-secondary mb-0">
+          {% if active_session %}
+            You left “{{ active_session.name }}” unfinished. Pick up where you stopped.
+          {% elif stats.this_week == 0 and stats.total_workouts == 0 %}
+            Nothing logged yet. Your first workout is the one that starts the graph.
+          {% elif stats.this_week == 0 %}
+            Nothing logged this week yet — a good day to change that.
+          {% elif stats.week_percentage >= 100 %}
+            You've hit your target of {{ stats.planned_days_per_week }} this week. Anything now is a bonus.
+          {% else %}
+            {{ stats.this_week }} down, {{ stats.remaining_this_week }} to go this week. Keep it rolling.
+          {% endif %}
+        </p>
+      </div>
+
+      {% comment %}
+        Weekly adherence ring. The percentage is computed server-side and
+        capped at 100, so an over-achieving week fills the ring rather than
+        wrapping past the start.
+      {% endcomment %}
+      <div class="fl-ring" style="--fl-ring-pct: {{ stats.week_percentage }}"
+           role="img"
+           aria-label="{{ stats.this_week }} of {{ stats.planned_days_per_week }} planned workouts completed this week">
+        <span class="fl-ring-inner">
+          <span class="fl-ring-v" aria-hidden="true">
+            <span data-count="{{ stats.this_week }}">{{ stats.this_week }}</span>/{{ stats.planned_days_per_week }}
+          </span>
+          <span class="fl-ring-k" aria-hidden="true">This week</span>
+        </span>
+      </div>
+    </div>
+
+    <div class="fl-dash-metrics">
+      <div class="fl-metric">
+        <span class="fl-metric-v" data-count="{{ stats.total_workouts }}">{{ stats.total_workouts }}</span>
+        <span class="fl-metric-k">Workouts logged</span>
+      </div>
+      <div class="fl-metric">
+        <span class="fl-metric-v" data-count="{{ stats.total_sets }}">{{ stats.total_sets }}</span>
+        <span class="fl-metric-k">Sets completed</span>
+      </div>
+      <div class="fl-metric">
+        <span class="fl-metric-v fl-num">{{ stats.total_volume_kg|floatformat:0 }}</span>
+        <span class="fl-metric-k">kg lifted, all time</span>
+      </div>
+    </div>
+  </div>
+
+  {# ---------- The one thing to do now ---------- #}
+  {% if active_session %}
+    <div class="fl-card fl-card-active reveal mb-3">
+      <span class="fl-badge fl-badge-active fl-badge-dot mb-2">Workout in progress</span>
+      <h2 class="h5 mb-3">{{ active_session.name }}</h2>
+      <a href="{% url 'workouts:active_workout' active_session.id %}"
+         class="btn btn-success w-100 fl-btn-lg fl-btn-icon">
+        <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M8 5.14v13.72a1 1 0 0 0 1.5.86l11-6.86a1 1 0 0 0 0-1.72l-11-6.86A1 1 0 0 0 8 5.14Z"/></svg>
+        Resume workout
+      </a>
+    </div>
+  {% else %}
+    <a href="{% url 'workouts:start_workout' %}"
+       class="btn btn-success w-100 fl-btn-xl fl-btn-icon fl-pulse reveal mb-3">
+      <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M8 5.14v13.72a1 1 0 0 0 1.5.86l11-6.86a1 1 0 0 0 0-1.72l-11-6.86A1 1 0 0 0 8 5.14Z"/></svg>
+      Start workout
+    </a>
+  {% endif %}
+
+  {# ---------- Recent sessions ---------- #}
+  {% if stats.recent_sessions %}
+    <div class="fl-card reveal mb-3">
+      <div class="fl-section-head">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v5h5"/><path d="M3.05 13A9 9 0 1 0 6 5.3L3 8"/><path d="M12 7v5l3 2"/></svg>
+        <h2 class="h6 text-uppercase text-secondary mb-0">Recent sessions</h2>
+        <a href="{% url 'workouts:history' %}" class="btn btn-link btn-sm ms-auto p-0">See all</a>
+      </div>
+
+      <div class="d-grid gap-2">
+        {% for session in stats.recent_sessions %}
+          <a href="{% url 'workouts:history' %}" class="fl-recent">
+            <span class="fl-recent-icon" aria-hidden="true">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6.5 6.5v11M17.5 6.5v11M4 9v6M20 9v6M6.5 12h11"/></svg>
+            </span>
+            <span class="flex-grow-1">
+              <span class="fl-recent-name">{{ session.name }}</span>
+              <span class="fl-recent-meta">{{ session.started_at|date:"D j M" }} · {{ session.started_at|timesince }} ago</span>
+            </span>
+            <span class="fl-tile-arrow" aria-hidden="true">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:1.1rem;height:1.1rem"><path d="m9 18 6-6-6-6"/></svg>
+            </span>
+          </a>
+        {% endfor %}
+      </div>
+    </div>
+  {% endif %}
+
+  {# ---------- Everything else ---------- #}
+  <div class="fl-section-head reveal">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></svg>
+    <h2 class="h6 text-uppercase text-secondary mb-0">Your toolkit</h2>
+  </div>
+
+  <div class="reveal fl-tile-grid mb-3">
+    <a href="{% url 'ai_planner:current_plan' %}" class="fl-tile fl-lift mb-2">
+      <span class="fl-tile-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><rect x="8" y="3" width="8" height="4" rx="1.5"/><path d="M8 5H6a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-2M9 12h6M9 16h4"/></svg></span>
+      <span class="fl-tile-body">
+        <span class="fl-tile-title d-block">My workout plan</span>
+        <span class="fl-tile-sub">AI-built around your goal &amp; time</span>
+      </span>
+      <span class="fl-tile-arrow" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:1.1rem;height:1.1rem"><path d="m9 18 6-6-6-6"/></svg></span>
+    </a>
+
+    <a href="{% url 'analytics:progress' %}" class="fl-tile fl-lift mb-2">
+      <span class="fl-tile-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18"/><path d="m7 14 4-4 3 3 5-6"/></svg></span>
+      <span class="fl-tile-body">
+        <span class="fl-tile-title d-block">Progress &amp; 1RM</span>
+        <span class="fl-tile-sub">Strength trends and plateau alerts</span>
+      </span>
+      <span class="fl-tile-arrow" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:1.1rem;height:1.1rem"><path d="m9 18 6-6-6-6"/></svg></span>
+    </a>
+
+    <a href="{% url 'analytics:wellness' %}" class="fl-tile fl-lift mb-2">
+      <span class="fl-tile-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M20.8 5.6a5.5 5.5 0 0 0-7.8 0L12 6.6l-1-1a5.5 5.5 0 0 0-7.8 7.8l1 1 7.8 7.8 7.8-7.8 1-1a5.5 5.5 0 0 0 0-7.8Z"/></svg></span>
+      <span class="fl-tile-body">
+        <span class="fl-tile-title d-block">Wellness passport</span>
+        <span class="fl-tile-sub">Track body composition &amp; trends</span>
+      </span>
+      <span class="fl-tile-arrow" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:1.1rem;height:1.1rem"><path d="m9 18 6-6-6-6"/></svg></span>
+    </a>
+
+    <a href="{% url 'analytics:calories' %}" class="fl-tile fl-lift mb-2">
+      <span class="fl-tile-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2s5 4 5 9a5 5 0 0 1-10 0c0-1.5.6-2.8 1.3-3.8C9 9.5 12 8 12 2Z"/></svg></span>
+      <span class="fl-tile-body">
+        <span class="fl-tile-title d-block">Calorie calculator</span>
+        <span class="fl-tile-sub">Estimate your daily energy needs</span>
+      </span>
+      <span class="fl-tile-arrow" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:1.1rem;height:1.1rem"><path d="m9 18 6-6-6-6"/></svg></span>
+    </a>
+
+    <a href="{% url 'analytics:nutrition' %}" class="fl-tile fl-lift mb-2">
+      <span class="fl-tile-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M11 20A7 7 0 0 1 4 13c0-4 3-7 7-7 1 0 2 .2 3 .6M20 8c0 5-3 9-8 12"/><path d="M12 6c0-2 1.5-3.5 4-4 .5 2.5-.5 4.5-2.5 5.5"/></svg></span>
+      <span class="fl-tile-body">
+        <span class="fl-tile-title d-block">Nutrition targets</span>
+        <span class="fl-tile-sub">Protein, fat, carbs &amp; fibre goals</span>
+      </span>
+      <span class="fl-tile-arrow" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:1.1rem;height:1.1rem"><path d="m9 18 6-6-6-6"/></svg></span>
+    </a>
+
+    <a href="{% url 'workouts:history' %}" class="fl-tile fl-lift mb-2">
+      <span class="fl-tile-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v5h5"/><path d="M3.05 13A9 9 0 1 0 6 5.3L3 8"/><path d="M12 7v5l3 2"/></svg></span>
+      <span class="fl-tile-body">
+        <span class="fl-tile-title d-block">Workout history</span>
+        <span class="fl-tile-sub">Every session you've logged</span>
+      </span>
+      <span class="fl-tile-arrow" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:1.1rem;height:1.1rem"><path d="m9 18 6-6-6-6"/></svg></span>
+    </a>
+  </div>
+
+  {# ---------- Plan settings ---------- #}
+  <div class="fl-card reveal mb-3">
+    <div class="fl-section-head">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20a8 8 0 1 0-8-8"/><path d="M12 8v4l3 2"/><path d="M4 12H2M6 6 4.5 4.5"/></svg>
+      <h2 class="h6 text-uppercase text-secondary mb-0">Your plan settings</h2>
+    </div>
+
+    <div class="row g-2 mb-3">
+      <div class="col-12">
+        <div class="fl-stat fl-stat-hero">
+          <span class="fl-stat-value">{{ profile.get_goal_display }}</span>
+          <span class="fl-stat-label">Current goal</span>
+        </div>
+      </div>
+      <div class="col-6">
+        <div class="fl-stat">
+          <span class="fl-stat-value" data-count="{{ profile.days_per_week }}">{{ profile.days_per_week }}</span>
+          <span class="fl-stat-label">Training days / week</span>
+        </div>
+      </div>
+      <div class="col-6">
+        <div class="fl-stat">
+          <span class="fl-stat-value">{{ profile.get_experience_level_display }}</span>
+          <span class="fl-stat-label">Experience</span>
+        </div>
+      </div>
+      <div class="col-6">
+        <div class="fl-stat">
+          <span class="fl-stat-value" style="font-size:1.15rem">{{ profile.get_workout_location_display }}</span>
+          <span class="fl-stat-label">Location</span>
+        </div>
+      </div>
+      <div class="col-6">
+        <div class="fl-stat">
+          <span class="fl-stat-value"><span data-count="{{ profile.session_duration }}" data-suffix=" min">{{ profile.session_duration }} min</span></span>
+          <span class="fl-stat-label">Session length</span>
+        </div>
+      </div>
+    </div>
+
+    <a href="{% url 'users:profile' %}" class="btn btn-outline-light w-100">Edit profile</a>
+  </div>
+
+  <p class="fl-phase-note">
+    General fitness guidance only — not medical advice.
+  </p>
+{% endblock %}

@@ -1,0 +1,76 @@
+{% extends "base.html" %}
+
+{% block title %}Trainees — Admin — Fit Logger{% endblock %}
+
+{% block content %}
+
+  <h1 class="h4 mb-3">Trainees</h1>
+
+  {# Search + filters. GET so they combine and are bookmarkable. #}
+  <form method="get" class="fl-card mb-3">
+    <div class="mb-2">
+      <input type="search" name="q" value="{{ q }}" class="form-control form-control-lg"
+             placeholder="Search by name, username or email…" autocomplete="off">
+    </div>
+    <div class="row g-2">
+      <div class="col-6 col-md-4">
+        <select name="gender" class="form-select">
+          <option value="">Any gender</option>
+          <option value="MALE" {% if gender == 'MALE' %}selected{% endif %}>Male</option>
+          <option value="FEMALE" {% if gender == 'FEMALE' %}selected{% endif %}>Female</option>
+        </select>
+      </div>
+      <div class="col-6 col-md-4">
+        <select name="status" class="form-select">
+          <option value="">Any status</option>
+          <option value="active" {% if status == 'active' %}selected{% endif %}>Active</option>
+          <option value="blocked" {% if status == 'blocked' %}selected{% endif %}>Blocked</option>
+          {# Removed accounts are hidden from every other view; this is the way back. #}
+          <option value="deleted" {% if status == 'deleted' %}selected{% endif %}>Removed</option>
+        </select>
+      </div>
+      <div class="col-12 col-md-4">
+        <select name="sharing" class="form-select">
+          <option value="">Any sharing</option>
+          <option value="shared" {% if sharing == 'shared' %}selected{% endif %}>Profile shared</option>
+          <option value="private" {% if sharing == 'private' %}selected{% endif %}>Private</option>
+        </select>
+      </div>
+    </div>
+    <div class="d-flex gap-2 mt-2">
+      <button type="submit" class="btn btn-success flex-fill">Apply</button>
+      <a href="{% url 'adminportal:trainees' %}" class="btn btn-outline-light">Reset</a>
+    </div>
+  </form>
+
+  {% for trainee in trainees %}
+    <div class="fl-card fl-lift mb-2">
+      <div class="d-flex align-items-center gap-3">
+        <span class="fl-avatar flex-shrink-0" aria-hidden="true">
+          {{ trainee.get_full_name|default:trainee.username|make_list|first|upper }}
+        </span>
+        <div class="flex-grow-1 min-w-0">
+          <div class="d-flex align-items-center gap-2 flex-wrap">
+            <span class="fw-semibold">{{ trainee.get_full_name|default:trainee.username }}</span>
+            {% if not trainee.is_active %}<span class="fl-badge fl-badge-muted">Blocked</span>{% endif %}
+            {% if trainee.profile.profile_shared %}<span class="fl-badge fl-badge-active">Shared</span>{% endif %}
+          </div>
+          <p class="text-secondary small mb-0">
+            {% if trainee.profile.age %}Age {{ trainee.profile.age }}{% else %}Age —{% endif %} ·
+            {% if trainee.profile.sex %}{{ trainee.profile.get_sex_display }}{% else %}Gender —{% endif %}
+          </p>
+        </div>
+      </div>
+      <div class="d-flex gap-2 mt-3">
+        <a href="{% url 'adminportal:trainee_detail' trainee.id %}" class="btn btn-sm btn-outline-light flex-fill">Open profile</a>
+        <a href="{% url 'adminportal:open_chat' trainee.id %}" class="btn btn-sm btn-outline-light flex-fill">Open chat</a>
+      </div>
+    </div>
+  {% empty %}
+    <div class="fl-card text-center">
+      <p class="mb-1">No trainees match.</p>
+      <p class="text-secondary small mb-0">Try clearing the search or filters.</p>
+    </div>
+  {% endfor %}
+
+{% endblock %}

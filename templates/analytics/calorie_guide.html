@@ -1,0 +1,217 @@
+{% extends "base.html" %}
+
+{% block title %}Know your calories — Fit Logger{% endblock %}
+
+{% block content %}
+
+  <div class="fl-enter mb-3">
+    <p class="fl-eyebrow mb-1">Guide</p>
+    <h1 class="h3 mb-1">Know your calories</h1>
+    <p class="text-secondary small mb-0">
+      A plain-language guide to using your calorie estimate well.
+    </p>
+  </div>
+
+  <div class="fl-card reveal mb-3">
+    <div class="d-flex gap-3 mb-2">
+      <span class="fl-day-badge" aria-hidden="true">1</span>
+      <h2 class="h5 mb-0 align-self-center">What are maintenance calories?</h2>
+    </div>
+    <p>
+      Your maintenance calories are the estimated number of calories you need
+      each day to keep your current body weight. At maintenance, the calories
+      you eat roughly equal the calories your body uses.
+    </p>
+    <p class="mb-0 text-secondary small">
+      This is only an estimate, not a fixed number. Your real needs shift with
+      body weight, daily movement, training volume, and lifestyle. The best way
+      to check it is to track your intake and your body-weight trend for
+      2–3 weeks.
+    </p>
+  </div>
+
+  <div class="fl-card reveal mb-3">
+    <div class="d-flex gap-3 mb-2">
+      <span class="fl-day-badge" aria-hidden="true">2</span>
+      <h2 class="h5 mb-0 align-self-center">How maintenance calories are calculated</h2>
+    </div>
+    <p>
+      First, your <strong>Basal Metabolic Rate (BMR)</strong> is estimated — the
+      energy your body uses at rest for essential functions like breathing and
+      circulation.
+    </p>
+    <p class="mb-0">
+      BMR is then adjusted for your activity level to estimate your
+      <strong>Total Daily Energy Expenditure (TDEE)</strong>, which is your
+      maintenance target:
+    </p>
+    <ul class="mt-2 mb-0">
+      <li>BMR = energy used at rest</li>
+      <li>TDEE = BMR + energy from daily activity and exercise</li>
+    </ul>
+  </div>
+
+  <div class="fl-card reveal mb-3">
+    <div class="d-flex gap-3 mb-2">
+      <span class="fl-day-badge" aria-hidden="true">3</span>
+      <h2 class="h5 mb-0 align-self-center">Calorie deficit — for fat loss</h2>
+    </div>
+    <p>
+      A calorie deficit means eating fewer calories than your body uses. Over
+      time, that generally reduces body weight. Use one when your goal is losing
+      fat or improving body composition through a fat-loss phase.
+    </p>
+    <p class="mb-0">
+      A practical starting point is roughly a <strong>10–20% deficit</strong>
+      below maintenance. A moderate deficit is easier to sustain than an
+      aggressive one, and it better protects training performance and muscle.
+    </p>
+  </div>
+
+  <div class="fl-card reveal mb-3">
+    <div class="d-flex gap-3 mb-2">
+      <span class="fl-day-badge" aria-hidden="true">4</span>
+      <h2 class="h5 mb-0 align-self-center">How much to lose</h2>
+    </div>
+    <p>
+      Rather than fixating on a calorie number, watch your body-weight trend. A
+      practical target during fat loss is about
+      <strong>0.5–1.0% of body weight per week</strong> (for an 80 kg person,
+      roughly 0.4–0.8 kg/week).
+    </p>
+    <p class="mb-0 text-secondary small">
+      Leaner people generally do better at the slower end. Never judge progress
+      from a single weigh-in — weight fluctuates with water, food, and sodium.
+      Use your <strong>weekly average</strong> instead.
+    </p>
+  </div>
+
+  <div class="fl-card reveal mb-3">
+    <div class="d-flex gap-3 mb-2">
+      <span class="fl-day-badge" aria-hidden="true">5</span>
+      <h2 class="h5 mb-0 align-self-center">Adjusting during fat loss</h2>
+    </div>
+    <p>Don't cut calories on a schedule. Adjust only when your progress says to:</p>
+    <ol class="mb-2">
+      <li>Start with a moderate deficit.</li>
+      <li>Track intake consistently.</li>
+      <li>Weigh in regularly under similar conditions.</li>
+      <li>Use your weekly average body weight.</li>
+      <li>Compare the trend across 2–3 weeks.</li>
+    </ol>
+    <p class="mb-0">
+      If weight is dropping at a good rate, keep calories the same. If it hasn't
+      meaningfully moved for 2–3 weeks despite good adherence, consider cutting
+      about <strong>100–200 kcal/day</strong>. If you're losing too fast and
+      training or energy is suffering, add about 100–200 kcal/day.
+    </p>
+  </div>
+
+  <div class="fl-card reveal mb-3">
+    <div class="d-flex gap-3 mb-2">
+      <span class="fl-day-badge" aria-hidden="true">6</span>
+      <h2 class="h5 mb-0 align-self-center">Calorie surplus — for muscle gain</h2>
+    </div>
+    <p>
+      A calorie surplus means eating more than your body uses. Combined with
+      resistance training and enough protein, it supports muscle growth. Use one
+      when your goal is gaining muscle or a dedicated building phase.
+    </p>
+    <p class="mb-0">
+      A practical starting point is roughly a <strong>5–15% surplus</strong>
+      above maintenance. A bigger surplus does not build muscle faster — the
+      extra mostly becomes fat.
+    </p>
+  </div>
+
+  <div class="fl-card reveal mb-3">
+    <div class="d-flex gap-3 mb-2">
+      <span class="fl-day-badge" aria-hidden="true">7</span>
+      <h2 class="h5 mb-0 align-self-center">How much to gain</h2>
+    </div>
+    <p class="mb-0">
+      Aim for gradual gain: about <strong>0.25–0.5% of body weight per week</strong>
+      (for a 70 kg person, roughly 0.18–0.35 kg/week). More experienced lifters
+      should target the slower end. Not all of the gain will be muscle — the aim
+      is enough energy to grow while limiting fat gain.
+    </p>
+  </div>
+
+  <div class="fl-card reveal mb-3">
+    <div class="d-flex gap-3 mb-2">
+      <span class="fl-day-badge" aria-hidden="true">8</span>
+      <h2 class="h5 mb-0 align-self-center">Adjusting during muscle gain</h2>
+    </div>
+    <p class="mb-0">
+      Start with a small-to-moderate surplus and watch your weekly average. If
+      you're gaining at the desired rate, hold calories steady. If weight hasn't
+      moved for 2–3 weeks, add about <strong>100–200 kcal/day</strong>. If you're
+      gaining too fast, drop about 100–200 kcal/day. Adjust from your actual
+      trend, not the calendar.
+    </p>
+  </div>
+
+  <div class="fl-card reveal mb-3">
+    <div class="d-flex gap-3 mb-2">
+      <span class="fl-day-badge" aria-hidden="true">9</span>
+      <h2 class="h5 mb-0 align-self-center">When to eat at maintenance</h2>
+    </div>
+    <p class="mb-0">
+      Maintenance suits holding your current weight, taking a break from
+      prolonged dieting, or focusing on performance. Beginners and people
+      returning to training can often still improve body composition around
+      maintenance when training and protein are on point.
+    </p>
+  </div>
+
+  <div class="fl-card reveal mb-3">
+    <div class="d-flex gap-3 mb-2">
+      <span class="fl-day-badge" aria-hidden="true">10</span>
+      <h2 class="h5 mb-0 align-self-center">The most important rule</h2>
+    </div>
+    <p>
+      No calculator can find your exact maintenance calories — the result is a
+      starting point. Your real-world weight trend is the feedback that refines
+      it:
+    </p>
+    <p class="mb-0 text-secondary small">
+      Estimate maintenance → choose your goal → set calories → follow it
+      consistently → track weight → use weekly averages → watch the trend for
+      2–3 weeks → adjust by 100–200 kcal only when needed. The goal isn't to keep
+      changing your target; it's to find an intake that works and keep it.
+    </p>
+  </div>
+
+  <div class="fl-card reveal mb-3">
+    <h2 class="h6 text-uppercase text-secondary mb-2">Quick guide</h2>
+    <ul class="list-unstyled mb-0">
+      <li class="fl-cal-goal">
+        <span class="fw-semibold">Maintain</span>
+        <span class="text-secondary small text-end">around maintenance calories</span>
+      </li>
+      <li class="fl-cal-goal">
+        <span class="fw-semibold">Lose fat</span>
+        <span class="text-secondary small text-end">~10–20% below maintenance</span>
+      </li>
+      <li class="fl-cal-goal">
+        <span class="fw-semibold">Build muscle</span>
+        <span class="text-secondary small text-end">~5–15% above maintenance</span>
+      </li>
+    </ul>
+  </div>
+
+  <div class="alert alert-warning reveal" role="alert">
+    <strong>Important.</strong> These calorie figures are estimates and should be
+    adjusted from your real progress. Short-term weight swings are normal, so
+    don't change calories over a single weigh-in. This is general fitness and
+    nutrition guidance — not a substitute for personalised advice from a
+    qualified healthcare professional or registered dietitian, especially if you
+    have a medical condition, a history of disordered eating, or special
+    nutritional needs.
+  </div>
+
+  <a href="{% url 'analytics:calories' %}" class="btn btn-outline-light w-100 mb-3">
+    Back to calculator
+  </a>
+
+{% endblock %}

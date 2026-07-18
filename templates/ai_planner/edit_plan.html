@@ -1,0 +1,135 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Edit plan — Fit Logger{% endblock %}
+
+{% block content %}
+
+  <h1 class="h4 mb-1">Edit plan</h1>
+  <p class="text-secondary small mb-3">
+    Change anything — names, exercises, sets, rep ranges, notes. Add or remove
+    days and exercises, then save.
+  </p>
+
+  <form method="post" id="plan-editor">
+    {% csrf_token %}
+
+    <div class="fl-card mb-3">
+      <label class="form-label">Plan name</label>
+      <input type="text" name="plan_name" class="form-control form-control-lg mb-3"
+             value="{{ plan_data.plan_name }}" maxlength="120" required>
+
+      <label class="form-label">Summary</label>
+      <textarea name="summary" rows="2" class="form-control">{{ plan_data.summary }}</textarea>
+    </div>
+
+    <div id="days">
+      {% for day in plan_data.days %}
+        <div class="fl-card mb-3 fl-edit-day" data-day>
+          <div class="d-flex justify-content-between align-items-center mb-2">
+            <span class="text-uppercase text-secondary small fl-day-label">Day {{ forloop.counter }}</span>
+            <button type="button" class="btn btn-sm btn-outline-danger" data-remove-day>Remove day</button>
+          </div>
+
+          <label class="form-label small text-secondary">Day name</label>
+          <input type="text" data-field="day_name" name="day_{{ forloop.counter0 }}_name"
+                 class="form-control mb-2" value="{{ day.day_name }}" maxlength="120">
+
+          <label class="form-label small text-secondary">Focus</label>
+          <input type="text" data-field="day_focus" name="day_{{ forloop.counter0 }}_focus"
+                 class="form-control mb-3" value="{{ day.focus }}" maxlength="200">
+
+          <div data-exercises>
+            {% for ex in day.exercises %}
+              <div class="fl-edit-ex" data-ex>
+                <div class="row g-2 align-items-end">
+                  <div class="col-12 col-sm-5">
+                    <label class="form-label small text-secondary">Exercise</label>
+                    <input type="text" data-field="ex_name" name="day_{{ forloop.parentloop.counter0 }}_ex_{{ forloop.counter0 }}_name"
+                           class="form-control" value="{{ ex.exercise }}" maxlength="100">
+                  </div>
+                  <div class="col-4 col-sm-2">
+                    <label class="form-label small text-secondary">Sets</label>
+                    <input type="number" data-field="ex_sets" name="day_{{ forloop.parentloop.counter0 }}_ex_{{ forloop.counter0 }}_sets"
+                           class="form-control text-center" value="{{ ex.sets }}" min="1" max="20" inputmode="numeric">
+                  </div>
+                  <div class="col-8 col-sm-3">
+                    <label class="form-label small text-secondary">Rep range</label>
+                    <input type="text" data-field="ex_reps" name="day_{{ forloop.parentloop.counter0 }}_ex_{{ forloop.counter0 }}_reps"
+                           class="form-control" value="{{ ex.rep_range }}" maxlength="20" placeholder="6-8">
+                  </div>
+                  <div class="col-12 col-sm-2 d-grid">
+                    <button type="button" class="btn btn-outline-danger" data-remove-ex aria-label="Remove exercise">Remove</button>
+                  </div>
+                  <div class="col-12">
+                    <label class="form-label small text-secondary">Notes</label>
+                    <input type="text" data-field="ex_notes" name="day_{{ forloop.parentloop.counter0 }}_ex_{{ forloop.counter0 }}_notes"
+                           class="form-control" value="{{ ex.notes }}" maxlength="300">
+                  </div>
+                </div>
+                <hr class="fl-ex-divider">
+              </div>
+            {% endfor %}
+          </div>
+
+          <button type="button" class="btn btn-outline-light w-100" data-add-ex>+ Add exercise</button>
+        </div>
+      {% endfor %}
+    </div>
+
+    <button type="button" class="btn btn-outline-light w-100 mb-3" id="add-day">+ Add day</button>
+
+    <div class="d-flex gap-2 mb-3">
+      <a href="{% url 'ai_planner:plan_detail' plan.id %}" class="btn btn-outline-light flex-fill">Cancel</a>
+      <button type="submit" class="btn btn-success flex-fill fl-btn-lg">Save plan</button>
+    </div>
+  </form>
+
+  {# Templates cloned by the editor JS. #}
+  <template id="ex-template">
+    <div class="fl-edit-ex" data-ex>
+      <div class="row g-2 align-items-end">
+        <div class="col-12 col-sm-5">
+          <label class="form-label small text-secondary">Exercise</label>
+          <input type="text" data-field="ex_name" class="form-control" maxlength="100">
+        </div>
+        <div class="col-4 col-sm-2">
+          <label class="form-label small text-secondary">Sets</label>
+          <input type="number" data-field="ex_sets" class="form-control text-center" value="3" min="1" max="20" inputmode="numeric">
+        </div>
+        <div class="col-8 col-sm-3">
+          <label class="form-label small text-secondary">Rep range</label>
+          <input type="text" data-field="ex_reps" class="form-control" maxlength="20" placeholder="6-8">
+        </div>
+        <div class="col-12 col-sm-2 d-grid">
+          <button type="button" class="btn btn-outline-danger" data-remove-ex aria-label="Remove exercise">Remove</button>
+        </div>
+        <div class="col-12">
+          <label class="form-label small text-secondary">Notes</label>
+          <input type="text" data-field="ex_notes" class="form-control" maxlength="300">
+        </div>
+      </div>
+      <hr class="fl-ex-divider">
+    </div>
+  </template>
+
+  <template id="day-template">
+    <div class="fl-card mb-3 fl-edit-day" data-day>
+      <div class="d-flex justify-content-between align-items-center mb-2">
+        <span class="text-uppercase text-secondary small fl-day-label">Day</span>
+        <button type="button" class="btn btn-sm btn-outline-danger" data-remove-day>Remove day</button>
+      </div>
+      <label class="form-label small text-secondary">Day name</label>
+      <input type="text" data-field="day_name" class="form-control mb-2" maxlength="120">
+      <label class="form-label small text-secondary">Focus</label>
+      <input type="text" data-field="day_focus" class="form-control mb-3" maxlength="200">
+      <div data-exercises></div>
+      <button type="button" class="btn btn-outline-light w-100" data-add-ex>+ Add exercise</button>
+    </div>
+  </template>
+
+{% endblock %}
+
+{% block scripts %}
+  <script src="{% static 'js/plan_editor.js' %}"></script>
+{% endblock %}

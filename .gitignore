@@ -1,0 +1,31 @@
+# Secrets — never commit
+.env
+
+# Joey's source PDFs. Large, and usually someone else's copyright — the
+# ingested chunks live in the database, so the book itself never needs
+# committing. The bare *.pdf rule matters: a 90 MB book dropped in the project
+# root would otherwise be swept up by `git add -A`, and GitHub rejects blobs
+# over 100 MB.
+knowledge/
+*.pdf
+
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+
+# Virtual environment
+venv/
+.venv/
+
+# Django
+staticfiles/
+media/
+*.log
+db.sqlite3
+
+# Editors / OS
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db

@@ -1,0 +1,123 @@
+{% extends "base.html" %}
+
+{% block title %}History — Fit Logger{% endblock %}
+
+{% block content %}
+
+  <div class="fl-enter mb-3">
+    <p class="fl-eyebrow mb-1">Your log</p>
+    <h1 class="h3 mb-0">Workout history</h1>
+  </div>
+
+  {# Start / resume at the top, as requested. #}
+  {% if active_session %}
+    <a href="{% url 'workouts:active_workout' active_session.id %}"
+       class="btn btn-success w-100 fl-btn-lg fl-btn-icon reveal mb-3">
+      <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M8 5.14v13.72a1 1 0 0 0 1.5.86l11-6.86a1 1 0 0 0 0-1.72l-11-6.86A1 1 0 0 0 8 5.14Z"/></svg>
+      Resume workout
+    </a>
+  {% else %}
+    <a href="{% url 'workouts:start_workout' %}"
+       class="btn btn-success w-100 fl-btn-lg fl-btn-icon reveal mb-3">
+      <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M8 5.14v13.72a1 1 0 0 0 1.5.86l11-6.86a1 1 0 0 0 0-1.72l-11-6.86A1 1 0 0 0 8 5.14Z"/></svg>
+      Start a new workout
+    </a>
+  {% endif %}
+
+  {# The in-progress (unfinished) workout, with Continue and Delete. #}
+  {% if active_session %}
+    <div class="fl-card fl-card-active reveal mb-3">
+      <span class="fl-badge fl-badge-active fl-badge-dot mb-2">In progress · not finished</span>
+      <h2 class="h5 mb-1">{{ active_session.name }}</h2>
+      <p class="text-secondary small mb-3">
+        Started {{ active_session.started_at|date:"j M Y" }} at {{ active_session.started_at|time:"H:i" }}
+      </p>
+
+      {% for exercise, sets in active_grouped.items %}
+        <div class="fl-history-exercise">
+          <h3 class="h6 mb-2">{{ exercise.name }}</h3>
+          <ul class="list-unstyled mb-0">
+            {% for set in sets %}
+              <li class="fl-prev-set">
+                <span class="fl-set-badge">{{ set.set_number }}</span>
+                <span class="fw-semibold">{{ set.weight|floatformat:"-2" }} kg × {{ set.reps }}</span>
+              </li>
+            {% endfor %}
+          </ul>
+        </div>
+      {% empty %}
+        <p class="text-secondary small mb-3">No sets logged yet.</p>
+      {% endfor %}
+
+      <div class="d-flex gap-2 mt-3">
+        <a href="{% url 'workouts:active_workout' active_session.id %}"
+           class="btn btn-outline-light flex-fill">Continue</a>
+        <form method="post" action="{% url 'workouts:delete_workout' active_session.id %}" class="flex-fill m-0"
+              onsubmit="return confirm('Delete this unfinished workout? This cannot be undone.');">
+          {% csrf_token %}
+          <button type="submit" class="btn btn-outline-danger w-100">Delete</button>
+        </form>
+      </div>
+    </div>
+  {% endif %}
+
+  {# Finished workouts. #}
+  {% for session, exercises in history %}
+    <div class="fl-card fl-lift reveal mb-3">
+      <div class="d-flex justify-content-between align-items-start mb-1">
+        <span class="fl-badge fl-badge-active">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" style="width:.7rem;height:.7rem"><path d="M20 6 9 17l-5-5"/></svg>
+          Workout finished
+        </span>
+        <form method="post" action="{% url 'workouts:delete_workout' session.id %}" class="m-0"
+              onsubmit="return confirm('Delete this workout permanently? This cannot be undone.');">
+          {% csrf_token %}
+          <button type="submit" class="btn btn-sm btn-outline-danger" aria-label="Delete workout">✕</button>
+        </form>
+      </div>
+
+      <p class="text-secondary small mb-1">{{ session.started_at|date:"j F Y" }}</p>
+      <h2 class="h5 mb-2">{{ session.name }}</h2>
+
+      <p class="text-secondary small mb-3">
+        {{ session.started_at|time:"H:i" }}
+        {% if session.completed_at %}– {{ session.completed_at|time:"H:i" }}{% endif %}
+      </p>
+
+      {% for exercise, sets in exercises.items %}
+        <div class="fl-history-exercise">
+          <h3 class="h6 mb-2">{{ exercise.name }}</h3>
+          <ul class="list-unstyled mb-0">
+            {% for set in sets %}
+              <li class="fl-prev-set">
+                <span class="fl-set-badge">{{ set.set_number }}</span>
+                <span class="fw-semibold">{{ set.weight|floatformat:"-2" }} kg × {{ set.reps }}</span>
+              </li>
+            {% endfor %}
+          </ul>
+        </div>
+      {% empty %}
+        <p class="text-secondary small mb-0">No sets were logged in this workout.</p>
+      {% endfor %}
+
+      {% if session.notes %}
+        <div class="fl-note mt-3">
+          <p class="text-uppercase text-secondary small mb-1">Note</p>
+          <p class="mb-0">{{ session.notes|linebreaksbr }}</p>
+        </div>
+      {% endif %}
+    </div>
+
+  {% empty %}
+    {% if not active_session %}
+      <div class="fl-card reveal text-center">
+        <span class="fl-empty-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v5h5"/><path d="M3.05 13A9 9 0 1 0 6 5.3L3 8"/><path d="M12 7v5l3 2"/></svg></span>
+        <p class="mb-1">No completed workouts yet.</p>
+        <p class="text-secondary small mb-0">
+          Finish a workout and it will show up here.
+        </p>
+      </div>
+    {% endif %}
+  {% endfor %}
+
+{% endblock %}

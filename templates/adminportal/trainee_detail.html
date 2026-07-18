@@ -1,0 +1,416 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}{{ trainee.get_full_name|default:trainee.username }} — Admin — Fit Logger{% endblock %}
+
+{% block content %}
+
+  <a href="{% url 'adminportal:trainees' %}" class="btn btn-sm btn-outline-light mb-3 fl-btn-icon">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:1rem;height:1rem"><path d="m15 18-6-6 6-6"/></svg>
+    Back to trainees
+  </a>
+
+  {# Always-visible core: name, age, gender, chat. #}
+  <div class="fl-card fl-enter mb-3">
+    <div class="d-flex align-items-center gap-3">
+      <span class="fl-avatar flex-shrink-0" aria-hidden="true" style="width:3rem;height:3rem;font-size:1.3rem">
+        {{ trainee.get_full_name|default:trainee.username|make_list|first|upper }}
+      </span>
+      <div class="min-w-0">
+        <div class="d-flex align-items-center gap-2 flex-wrap">
+          <h1 class="h4 mb-0">{{ trainee.get_full_name|default:trainee.username }}</h1>
+          {% if trainee.profile.is_deleted %}
+            <span class="fl-badge fl-badge-muted">Removed</span>
+          {% elif not trainee.is_active %}
+            <span class="fl-badge fl-badge-muted">Blocked</span>
+          {% endif %}
+        </div>
+        <p class="text-secondary small mb-0">@{{ trainee.username }}</p>
+        <p class="text-secondary small mb-0">Joined FitLogger on {{ trainee.date_joined|date:"d/m/Y" }}</p>
+      </div>
+    </div>
+
+    <dl class="row mb-0 mt-3">
+      <dt class="col-5 col-sm-4 text-secondary fw-normal">Age</dt>
+      <dd class="col-7 col-sm-8 mb-1">{% if trainee.profile.age %}{{ trainee.profile.age }}{% else %}—{% endif %}</dd>
+      <dt class="col-5 col-sm-4 text-secondary fw-normal">Gender</dt>
+      <dd class="col-7 col-sm-8 mb-0">{% if trainee.profile.sex %}{{ trainee.profile.get_sex_display }}{% else %}—{% endif %}</dd>
+    </dl>
+
+    <a href="{% url 'adminportal:open_chat' trainee.id %}" class="btn btn-success w-100 fl-btn-lg mt-3 fl-btn-icon">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:1.05rem;height:1.05rem"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2Z"/></svg>
+      Open chat
+    </a>
+  </div>
+
+  {% comment %}
+    Account management. Independent of profile sharing — an admin can always
+    block or remove an account, whether or not they can see inside it.
+  {% endcomment %}
+  <div class="fl-card reveal mb-3">
+    <div class="fl-section-head" style="margin-bottom:.75rem">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10Z"/></svg>
+      <h2 class="h6 text-uppercase text-secondary small mb-0">Account</h2>
+    </div>
+
+    {% if trainee.profile.is_deleted %}
+      <p class="text-secondary small mb-3">
+        Removed on {{ trainee.profile.deleted_at|date:"j F Y" }}. Their workouts,
+        plans and history are all still here — restoring hands the account back
+        exactly as it was.
+      </p>
+      <form method="post" action="{% url 'adminportal:restore' trainee.id %}" class="m-0">
+        {% csrf_token %}
+        <button type="submit" class="btn btn-outline-light w-100">Restore account</button>
+      </form>
+
+    {% else %}
+      {% if trainee.is_active %}
+        <p class="text-secondary small mb-3">
+          Blocking stops this trainee logging in. Nothing is deleted, and you can
+          undo it at any time.
+        </p>
+        <form method="post" action="{% url 'adminportal:set_blocked' trainee.id %}" class="m-0 mb-2"
+              onsubmit="return confirm('Block this account? They will not be able to log in until you unblock them.');">
+          {% csrf_token %}
+          <input type="hidden" name="blocked" value="on">
+          <button type="submit" class="btn btn-outline-warning w-100">Block account</button>
+        </form>
+      {% else %}
+        <p class="text-secondary small mb-3">
+          This account is blocked and cannot log in.
+        </p>
+        <form method="post" action="{% url 'adminportal:set_blocked' trainee.id %}" class="m-0 mb-2">
+          {% csrf_token %}
+          <input type="hidden" name="blocked" value="off">
+          <button type="submit" class="btn btn-outline-light w-100">Unblock account</button>
+        </form>
+      {% endif %}
+
+      <form method="post" action="{% url 'adminportal:delete_trainee' trainee.id %}" class="m-0"
+            onsubmit="return confirm('Remove this account? They will lose access immediately. Their data is kept and you can restore the account later.');">
+        {% csrf_token %}
+        <button type="submit" class="btn btn-outline-danger w-100">Remove account</button>
+      </form>
+    {% endif %}
+  </div>
+
+  {% comment %}
+    Profile-sharing gate. When the trainee has not approved sharing, the view
+    does not put any private data in the context at all — there is nothing here
+    to hide. Chat above stays available either way.
+  {% endcomment %}
+  {% if shared %}
+    <div class="fl-card reveal mb-3">
+      <div class="fl-section-head" style="margin-bottom:.75rem">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/></svg>
+        <h2 class="h6 text-uppercase text-secondary small mb-0">Personal information</h2>
+      </div>
+
+      <dl class="row mb-0">
+        <dt class="col-5 col-sm-4 text-secondary fw-normal">Height</dt>
+        <dd class="col-7 col-sm-8 mb-2">{% if personal.height_cm %}{{ personal.height_cm }} cm{% else %}—{% endif %}</dd>
+
+        <dt class="col-5 col-sm-4 text-secondary fw-normal">Weight</dt>
+        <dd class="col-7 col-sm-8 mb-2">{% if personal.weight_kg %}{{ personal.weight_kg|floatformat:"-1" }} kg{% else %}—{% endif %}</dd>
+
+        <dt class="col-5 col-sm-4 text-secondary fw-normal">Goal</dt>
+        <dd class="col-7 col-sm-8 mb-2">{{ personal.goal }}</dd>
+
+        <dt class="col-5 col-sm-4 text-secondary fw-normal">Experience level</dt>
+        <dd class="col-7 col-sm-8 mb-0">{{ personal.experience_level }}</dd>
+      </dl>
+    </div>
+
+    {# --- Nutrition --- #}
+    <div class="fl-card reveal mb-3">
+      <div class="fl-section-head" style="margin-bottom:.75rem">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2s5 4 5 9a5 5 0 0 1-10 0c0-1.5.6-2.8 1.3-3.8C9 9.5 12 8 12 2Z"/></svg>
+        <h2 class="h6 text-uppercase text-secondary small mb-0">Nutrition</h2>
+      </div>
+
+      {% if nutrition %}
+        <div class="row g-2 mb-3">
+          <div class="col-6">
+            <div class="fl-stat">
+              <span class="fl-stat-value">{{ nutrition.maintenance }}</span>
+              <span class="fl-stat-label">Maintenance calories</span>
+            </div>
+          </div>
+          <div class="col-6">
+            <div class="fl-stat">
+              <span class="fl-stat-value">{{ nutrition.goal_calories }}</span>
+              <span class="fl-stat-label">Goal calories · {{ nutrition.goal_label|lower }}</span>
+            </div>
+          </div>
+        </div>
+        <dl class="row mb-0">
+          <dt class="col-6 text-secondary fw-normal">Protein target</dt>
+          <dd class="col-6 text-end mb-2">{{ nutrition.macros.protein.grams }} g</dd>
+          <dt class="col-6 text-secondary fw-normal">Carbohydrate target</dt>
+          <dd class="col-6 text-end mb-2">{{ nutrition.macros.carbs.grams }} g</dd>
+          <dt class="col-6 text-secondary fw-normal">Fat target</dt>
+          <dd class="col-6 text-end mb-2">{{ nutrition.macros.fat.grams }} g</dd>
+          <dt class="col-6 text-secondary fw-normal">Fibre target</dt>
+          <dd class="col-6 text-end mb-0">{{ nutrition.macros.fibre.min }}–{{ nutrition.macros.fibre.max }} g</dd>
+        </dl>
+      {% else %}
+        <p class="text-secondary small mb-0">
+          This trainee has not calculated their calories yet.
+        </p>
+      {% endif %}
+    </div>
+
+    {# --- Fitness --- #}
+    <div class="fl-card reveal mb-3">
+      <div class="fl-section-head" style="margin-bottom:.75rem">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M6.5 6.5v11M17.5 6.5v11M4 9v6M20 9v6M6.5 12h11"/></svg>
+        <h2 class="h6 text-uppercase text-secondary small mb-0">Fitness</h2>
+      </div>
+
+      <div class="row g-2 mb-3">
+        <div class="col-6">
+          <div class="fl-stat">
+            <span class="fl-stat-value">{{ fitness.avg_weekly }}</span>
+            <span class="fl-stat-label">Avg workouts / week</span>
+          </div>
+        </div>
+        <div class="col-6">
+          <div class="fl-stat">
+            <span class="fl-stat-value">{{ fitness.streak }}</span>
+            <span class="fl-stat-label">Week streak</span>
+          </div>
+        </div>
+        <div class="col-12">
+          <div class="fl-stat">
+            <span class="fl-stat-value">{{ fitness.this_week }} / {{ fitness.planned }}</span>
+            <span class="fl-stat-label">This week's progress</span>
+          </div>
+        </div>
+      </div>
+
+      <p class="text-uppercase text-secondary small mb-1" style="letter-spacing:.08em">AI workout plan</p>
+      {% if fitness.plan %}
+        <p class="fw-semibold mb-0">{{ fitness.plan.plan_json.plan_name }}</p>
+        <p class="text-secondary small mb-0">
+          {{ fitness.plan.days_per_week }} day{{ fitness.plan.days_per_week|pluralize }} per week ·
+          created {{ fitness.plan.created_at|date:"j M Y" }}
+        </p>
+      {% else %}
+        <p class="text-secondary small mb-0">No active plan.</p>
+      {% endif %}
+    </div>
+
+    {# --- Workout analytics --- #}
+    <div class="fl-card reveal mb-3">
+      <div class="fl-section-head" style="margin-bottom:.75rem">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18"/><path d="m7 14 4-4 3 3 5-6"/></svg>
+        <h2 class="h6 text-uppercase text-secondary small mb-0">Workout analytics</h2>
+      </div>
+
+      <div class="row g-2 mb-3">
+        <div class="col-4">
+          <div class="fl-stat">
+            <span class="fl-stat-value">{{ stats.total_workouts }}</span>
+            <span class="fl-stat-label">Workouts</span>
+          </div>
+        </div>
+        <div class="col-4">
+          <div class="fl-stat">
+            <span class="fl-stat-value">{{ stats.total_sets }}</span>
+            <span class="fl-stat-label">Sets</span>
+          </div>
+        </div>
+        <div class="col-4">
+          <div class="fl-stat">
+            <span class="fl-stat-value">{{ stats.total_volume_kg|floatformat:0 }}</span>
+            <span class="fl-stat-label">kg lifted</span>
+          </div>
+        </div>
+      </div>
+
+      <p class="text-uppercase text-secondary small mb-2" style="letter-spacing:.08em">Workouts per week</p>
+      <div id="chart-weekly" class="fl-chart"></div>
+      <p id="empty-weekly" class="text-secondary small mb-0 d-none">No completed workouts yet.</p>
+    </div>
+
+    {# --- Exercise history --- #}
+    <div class="fl-card reveal mb-3">
+      <div class="fl-section-head" style="margin-bottom:.75rem">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v5h5"/><path d="M3.05 13A9 9 0 1 0 6 5.3L3 8"/><path d="M12 7v5l3 2"/></svg>
+        <h2 class="h6 text-uppercase text-secondary small mb-0">Recent workouts</h2>
+      </div>
+
+      {% for session, exercises in history %}
+        <div class="fl-history-exercise">
+          <p class="text-secondary small mb-1">{{ session.started_at|date:"j F Y" }}</p>
+          <p class="fw-semibold mb-2">{{ session.name }}</p>
+          {% for exercise, sets in exercises.items %}
+            <p class="text-secondary small mb-1">
+              {{ exercise.name }} —
+              {% for set in sets %}{{ set.weight|floatformat:"-2" }}×{{ set.reps }}{% if not forloop.last %}, {% endif %}{% endfor %}
+            </p>
+          {% empty %}
+            <p class="text-secondary small mb-0">No sets logged.</p>
+          {% endfor %}
+        </div>
+      {% empty %}
+        {% comment %}
+          Deliberately not "No completed workouts yet" — that is the weekly
+          chart's empty text, and two cards sharing a string makes any test
+          asserting on it pass vacuously.
+        {% endcomment %}
+        <p class="text-secondary small mb-0">No workouts logged yet.</p>
+      {% endfor %}
+    </div>
+
+    {# --- Exercise analytics --- #}
+    <form method="get" id="exercise-picker" class="fl-card reveal mb-3">
+      <div class="fl-section-head" style="margin-bottom:.75rem">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M6.5 6.5v11M17.5 6.5v11M4 9v6M20 9v6M6.5 12h11"/></svg>
+        <h2 class="h6 text-uppercase text-secondary small mb-0">Exercise analytics</h2>
+      </div>
+
+      <label for="exercise-select" class="form-label">Exercise</label>
+      <div class="d-flex gap-2">
+        <select name="exercise" id="exercise-select" class="form-select">
+          <option value="">Choose an exercise…</option>
+          {% for group_name, exercises in exercise_groups.items %}
+            <optgroup label="{{ group_name }}">
+              {% for item in exercises %}
+                <option value="{{ item.id }}"
+                  {% if selected_exercise and item.id == selected_exercise.id %}selected{% endif %}>
+                  {{ item.name }}
+                </option>
+              {% endfor %}
+            </optgroup>
+          {% endfor %}
+        </select>
+        <button type="submit" class="btn btn-outline-light" id="exercise-go">Go</button>
+      </div>
+    </form>
+
+    {% if selected_exercise %}
+      {% if exercise_summary.has_data %}
+
+        <div class="fl-card reveal mb-3">
+          <h2 class="h5 mb-1">{{ selected_exercise.name }}</h2>
+          <p class="text-secondary small mb-3">
+            {{ exercise_summary.sessions_logged }} session{{ exercise_summary.sessions_logged|pluralize }} logged
+          </p>
+
+          <div class="row g-2">
+            <div class="col-6">
+              <div class="fl-stat">
+                <span class="fl-stat-value">{{ exercise_summary.current_max_weight|floatformat:"-2" }} kg</span>
+                <span class="fl-stat-label">Heaviest weight</span>
+              </div>
+            </div>
+            <div class="col-6">
+              <div class="fl-stat">
+                <span class="fl-stat-value">{{ exercise_summary.best_estimated_1rm|floatformat:1 }} kg</span>
+                <span class="fl-stat-label">Best estimated 1RM</span>
+              </div>
+            </div>
+            <div class="col-6">
+              <div class="fl-stat">
+                <span class="fl-stat-value">
+                  {% if exercise_summary.estimated_1rm_change_percentage is not None %}
+                    {% if exercise_summary.estimated_1rm_change_percentage > 0 %}+{% endif %}{{ exercise_summary.estimated_1rm_change_percentage|floatformat:1 }}%
+                  {% else %}—{% endif %}
+                </span>
+                <span class="fl-stat-label">Recent 1RM change</span>
+              </div>
+            </div>
+            <div class="col-6">
+              <div class="fl-stat">
+                <span class="fl-stat-value">{{ exercise_summary.recent_volume|floatformat:0 }} kg</span>
+                <span class="fl-stat-label">Recent volume load</span>
+              </div>
+            </div>
+          </div>
+
+          {% if exercise_summary.potential_plateau %}
+            <div class="alert alert-warning mt-3 mb-0" role="alert">
+              <strong>Potential plateau.</strong>
+              This trainee's estimated 1RM has not improved much across their
+              recent sessions. This is a simple app heuristic, not a diagnosis.
+            </div>
+          {% endif %}
+
+          <p class="text-secondary small mt-3 mb-0">
+            Estimated 1RM uses the Epley formula. It is an estimate from logged
+            sets, not a measured one-rep max.
+          </p>
+        </div>
+
+        <div class="fl-card reveal mb-3">
+          <h2 class="h6 text-uppercase text-secondary mb-2">Estimated 1RM over time</h2>
+          <div id="chart-1rm" class="fl-chart"></div>
+        </div>
+
+        <div class="fl-card reveal mb-3">
+          <h2 class="h6 text-uppercase text-secondary mb-2">Max weight over time</h2>
+          <div id="chart-max-weight" class="fl-chart"></div>
+        </div>
+
+        <div class="fl-card reveal mb-3">
+          <h2 class="h6 text-uppercase text-secondary mb-1">Session volume load</h2>
+          <p class="text-secondary small mb-2">
+            Total external weight moved during the workout, calculated as the sum
+            of (weight × reps) for every set. Helps track overall training
+            workload and monitor progressive overload over time.
+          </p>
+          <div id="chart-volume" class="fl-chart"></div>
+        </div>
+
+        <div class="fl-card reveal mb-3">
+          <h2 class="h6 text-uppercase text-secondary mb-2">
+            {{ selected_exercise.name }} history
+          </h2>
+          {% for session, sets in exercise_history %}
+            <div class="fl-history-exercise">
+              <p class="text-secondary small mb-1">{{ session.started_at|date:"j F Y" }}</p>
+              <p class="fw-semibold mb-1">{{ session.name }}</p>
+              <p class="text-secondary small mb-0">
+                {% for set in sets %}{{ set.weight|floatformat:"-2" }} kg × {{ set.reps }}{% if not forloop.last %} · {% endif %}{% endfor %}
+              </p>
+            </div>
+          {% endfor %}
+        </div>
+
+      {% else %}
+        <div class="fl-card reveal">
+          <h2 class="h5 mb-2">{{ selected_exercise.name }}</h2>
+          <p class="text-secondary mb-0">No workout entries found for this exercise.</p>
+        </div>
+      {% endif %}
+    {% endif %}
+
+  {% else %}
+    <div class="fl-card reveal text-center">
+      <span class="fl-empty-icon" aria-hidden="true">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9.9 4.24A9.1 9.1 0 0 1 12 4c7 0 10 8 10 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/><path d="M6.6 6.6A18.4 18.4 0 0 0 2 12s3 8 10 8a9.1 9.1 0 0 0 5.4-1.6M2 2l20 20"/></svg>
+      </span>
+      <p class="mb-1">This trainee has not approved profile sharing.</p>
+      <p class="text-secondary small mb-0">
+        You can still message them. Their details will appear here if they enable
+        sharing from their profile.
+      </p>
+    </div>
+  {% endif %}
+
+{% endblock %}
+
+{% block scripts %}
+  {% comment %}
+    Charts only load for a shared profile — the data is not in the page at all
+    otherwise. charts.js renders the weekly bars from this server-prepared JSON.
+  {% endcomment %}
+  {% if shared %}
+    {{ charts|json_script:"chart-data" }}
+    {{ exercise_name|json_script:"exercise-name" }}
+    <script src="https://cdn.jsdelivr.net/npm/plotly.js-dist-min@2.32.0/plotly.min.js"></script>
+    <script src="{% static 'js/charts.js' %}"></script>
+  {% endif %}
+{% endblock %}

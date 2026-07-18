@@ -1,0 +1,1475 @@
+/* Aurora Athletic — landing page.
+ *
+ * Loaded only by landing.html, so none of this can affect the app screens.
+ * It reuses the design tokens declared in style.css (:root) rather than
+ * redefining colour, so the marketing page and the product stay one product.
+ *
+ * Everything here animates transform/opacity only, and every motion is
+ * switched off under prefers-reduced-motion at the bottom of the file.
+ */
+
+/* ---------------------------------------------------------------- shell -- */
+
+.fl-landing {
+  /* The landing page has no bottom tab bar to clear. */
+  padding-bottom: 0;
+}
+
+.fl-landing-main {
+  padding: 0;
+  max-width: none;
+  width: 100%;
+  overflow-x: clip; /* decorative glows must never widen the page */
+}
+
+.fl-landing .fl-wrap {
+  width: 100%;
+  max-width: 1180px;
+  margin-inline: auto;
+  padding-inline: 1.25rem;
+}
+
+.fl-landing .fl-wrap-narrow {
+  max-width: 820px;
+}
+
+.fl-sec {
+  position: relative;
+  padding-block: clamp(4.5rem, 10vw, 8.5rem);
+}
+
+.fl-sec-alt {
+  background:
+    radial-gradient(120% 100% at 50% 0%, rgba(34, 197, 94, 0.05), transparent 60%),
+    var(--fl-bg-2);
+  border-block: 1px solid var(--fl-border);
+}
+
+/* ------------------------------------------------------------ marketing nav */
+
+.fl-lnav {
+  position: sticky;
+  top: 0;
+  z-index: 1030;
+  transition: background 0.3s var(--fl-ease), border-color 0.3s var(--fl-ease),
+    backdrop-filter 0.3s var(--fl-ease);
+  border-bottom: 1px solid transparent;
+}
+
+/* Solid only once scrolled — over the hero it should feel like glass. */
+.fl-lnav.is-stuck {
+  background: rgba(5, 8, 10, 0.78);
+  backdrop-filter: blur(18px) saturate(150%);
+  border-bottom-color: var(--fl-border);
+}
+
+.fl-lnav-inner {
+  max-width: 1180px;
+  margin-inline: auto;
+  padding: 0.9rem 1.25rem;
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.fl-lnav-brand {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.6rem;
+  font-family: var(--fl-font-display);
+  font-weight: 800;
+  font-size: 1.05rem;
+  color: var(--fl-text);
+  text-decoration: none;
+  letter-spacing: -0.02em;
+}
+
+.fl-lnav-brand:hover {
+  color: var(--fl-text);
+}
+
+.fl-lnav-links {
+  display: none;
+  margin-inline: auto;
+  gap: 0.35rem;
+}
+
+.fl-lnav-links a {
+  position: relative;
+  padding: 0.5rem 0.85rem;
+  border-radius: var(--fl-r-sm);
+  color: var(--fl-muted);
+  font-size: 0.92rem;
+  font-weight: 500;
+  text-decoration: none;
+  transition: color 0.2s var(--fl-ease), background 0.2s var(--fl-ease);
+}
+
+.fl-lnav-links a:hover {
+  color: var(--fl-text);
+  background: rgba(190, 242, 172, 0.06);
+}
+
+.fl-lnav-cta {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-left: auto;
+}
+
+/* Brand + both buttons need ~391px of min-content; buttons are nowrap and the
+ * brand uses &nbsp;, so nothing can shrink and "Get started" is silently cut
+ * off on a 375px (or 360px) phone — .fl-body's overflow-x:hidden means there
+ * isn't even a scrollbar to reveal it. Signing up is the priority here, so the
+ * secondary Log in button steps aside; it is still in the footer and the hero. */
+@media (max-width: 479px) {
+  .fl-lnav-cta .fl-btn-ghost {
+    display: none;
+  }
+}
+
+@media (min-width: 900px) {
+  .fl-lnav-links {
+    display: flex;
+  }
+  .fl-lnav-cta {
+    margin-left: 0;
+  }
+}
+
+/* ---------------------------------------------------------------- buttons -- */
+
+.fl-landing .fl-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  padding: 0.6rem 1.05rem;
+  border-radius: 999px;
+  border: 1px solid transparent;
+  font-family: var(--fl-font-display);
+  font-weight: 600;
+  font-size: 0.92rem;
+  line-height: 1;
+  text-decoration: none;
+  white-space: nowrap;
+  cursor: pointer;
+  transition: transform 0.22s var(--fl-spring), box-shadow 0.22s var(--fl-ease),
+    background 0.22s var(--fl-ease), border-color 0.22s var(--fl-ease);
+}
+
+.fl-landing .fl-btn svg {
+  width: 1.05em;
+  height: 1.05em;
+  transition: transform 0.22s var(--fl-ease);
+}
+
+.fl-landing .fl-btn-solid {
+  background: var(--fl-gradient);
+  color: #04120b;
+  box-shadow: 0 8px 30px -8px var(--fl-glow);
+}
+
+.fl-landing .fl-btn-solid:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 14px 44px -8px var(--fl-glow);
+  color: #04120b;
+}
+
+.fl-landing .fl-btn-solid:hover svg {
+  transform: translateX(3px);
+}
+
+.fl-landing .fl-btn-ghost {
+  background: rgba(190, 242, 172, 0.04);
+  border-color: var(--fl-border-strong);
+  color: var(--fl-text);
+}
+
+.fl-landing .fl-btn-ghost:hover {
+  background: rgba(190, 242, 172, 0.09);
+  border-color: var(--fl-accent);
+  color: var(--fl-text);
+  transform: translateY(-2px);
+}
+
+.fl-landing .fl-btn-xl {
+  padding: 0.95rem 1.6rem;
+  font-size: 1.02rem;
+}
+
+.fl-landing .fl-btn:focus-visible {
+  outline: 2px solid var(--fl-lime);
+  outline-offset: 3px;
+}
+
+/* ------------------------------------------------------------- typography -- */
+
+.fl-display {
+  font-family: var(--fl-font-display);
+  font-weight: 800;
+  font-size: clamp(2.6rem, 7vw, 4.6rem);
+  line-height: 1.02;
+  letter-spacing: -0.04em;
+  margin: 0 0 1.15rem;
+}
+
+.fl-h2 {
+  font-family: var(--fl-font-display);
+  font-weight: 700;
+  font-size: clamp(1.9rem, 4vw, 2.9rem);
+  line-height: 1.1;
+  letter-spacing: -0.03em;
+  margin: 0 0 0.9rem;
+}
+
+.fl-lede {
+  font-size: clamp(1.02rem, 1.6vw, 1.2rem);
+  line-height: 1.62;
+  color: var(--fl-muted);
+  max-width: 34rem;
+  margin: 0 0 2rem;
+}
+
+.fl-sub {
+  font-size: 1.02rem;
+  line-height: 1.62;
+  color: var(--fl-muted);
+  max-width: 46rem;
+  margin: 0;
+}
+
+.fl-sec-head {
+  margin-bottom: clamp(2.25rem, 5vw, 3.5rem);
+}
+
+.fl-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.4rem 0.9rem;
+  margin: 0 0 1.5rem;
+  border: 1px solid var(--fl-border-strong);
+  border-radius: 999px;
+  background: rgba(190, 242, 172, 0.05);
+  color: var(--fl-muted);
+  font-size: 0.8rem;
+  font-weight: 500;
+  letter-spacing: 0.02em;
+}
+
+.fl-pill-dot {
+  width: 0.45rem;
+  height: 0.45rem;
+  border-radius: 50%;
+  background: var(--fl-accent);
+  box-shadow: 0 0 0 3px rgba(34, 197, 94, 0.18);
+}
+
+/* ------------------------------------------------------------------ hero -- */
+
+.fl-hero-sec {
+  padding-top: clamp(2.5rem, 7vw, 4.5rem);
+  padding-bottom: clamp(3.5rem, 8vw, 6rem);
+  min-height: min(92vh, 900px);
+  display: flex;
+  align-items: center;
+  overflow: hidden;
+}
+
+/* Three slow-drifting colour fields — the page's only ambient motion. */
+.fl-aurora {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  overflow: hidden;
+}
+
+.fl-aurora span {
+  position: absolute;
+  border-radius: 50%;
+  filter: blur(90px);
+  opacity: 0.5;
+}
+
+.fl-aurora span:nth-child(1) {
+  width: 46rem;
+  height: 46rem;
+  top: -18rem;
+  left: -12rem;
+  background: radial-gradient(circle, rgba(5, 150, 105, 0.5), transparent 65%);
+  animation: fl-drift-a 22s var(--fl-ease) infinite alternate;
+}
+
+.fl-aurora span:nth-child(2) {
+  width: 38rem;
+  height: 38rem;
+  top: -10rem;
+  right: -10rem;
+  background: radial-gradient(circle, rgba(163, 230, 53, 0.28), transparent 65%);
+  animation: fl-drift-b 26s var(--fl-ease) infinite alternate;
+}
+
+.fl-aurora span:nth-child(3) {
+  width: 34rem;
+  height: 34rem;
+  bottom: -16rem;
+  left: 40%;
+  background: radial-gradient(circle, rgba(34, 197, 94, 0.26), transparent 65%);
+  animation: fl-drift-c 30s var(--fl-ease) infinite alternate;
+}
+
+@keyframes fl-drift-a {
+  to { transform: translate3d(6rem, 4rem, 0) scale(1.12); }
+}
+@keyframes fl-drift-b {
+  to { transform: translate3d(-5rem, 5rem, 0) scale(1.08); }
+}
+@keyframes fl-drift-c {
+  to { transform: translate3d(-4rem, -3rem, 0) scale(1.15); }
+}
+
+.fl-hero-grid {
+  position: relative;
+  z-index: 1;
+  display: grid;
+  gap: clamp(2.5rem, 6vw, 4rem);
+  align-items: center;
+}
+
+@media (min-width: 992px) {
+  .fl-hero-grid {
+    grid-template-columns: 1.05fr 0.95fr;
+  }
+}
+
+.fl-hero-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  margin-bottom: 1.15rem;
+}
+
+.fl-hero-actions-center {
+  justify-content: center;
+}
+
+.fl-hero-note {
+  font-size: 0.85rem;
+  color: var(--fl-faint);
+  margin: 0;
+}
+
+/* Scroll cue */
+.fl-scroll-cue {
+  position: absolute;
+  bottom: 1.75rem;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 1.55rem;
+  height: 2.5rem;
+  border: 2px solid var(--fl-border-strong);
+  border-radius: 999px;
+  display: none;
+  z-index: 1;
+}
+
+.fl-scroll-cue span {
+  position: absolute;
+  top: 0.42rem;
+  left: 50%;
+  width: 0.25rem;
+  height: 0.45rem;
+  margin-left: -0.125rem;
+  border-radius: 999px;
+  background: var(--fl-accent);
+  animation: fl-cue 1.8s var(--fl-ease) infinite;
+}
+
+@keyframes fl-cue {
+  0%, 100% { transform: translateY(0); opacity: 1; }
+  55% { transform: translateY(0.85rem); opacity: 0.15; }
+}
+
+@media (min-width: 992px) {
+  .fl-scroll-cue { display: block; }
+}
+
+/* ------------------------------------------------------- phone mockup art -- */
+
+.fl-hero-art {
+  position: relative;
+  display: flex;
+  justify-content: center;
+  perspective: 1400px;
+}
+
+.fl-phone {
+  position: relative;
+  width: min(320px, 82vw);
+  border-radius: 2.4rem;
+  padding: 0.55rem;
+  background: linear-gradient(160deg, rgba(190, 242, 172, 0.2), rgba(190, 242, 172, 0.04));
+  border: 1px solid var(--fl-border-strong);
+  box-shadow: 0 40px 90px -30px rgba(0, 0, 0, 0.9), 0 0 70px -20px var(--fl-glow-soft);
+  transform: rotateY(-11deg) rotateX(4deg);
+  transform-style: preserve-3d;
+}
+
+.fl-phone-glow {
+  position: absolute;
+  inset: -30% -20%;
+  background: radial-gradient(circle at 50% 40%, var(--fl-glow-soft), transparent 62%);
+  filter: blur(30px);
+  pointer-events: none;
+  z-index: -1;
+}
+
+.fl-phone-screen {
+  background: linear-gradient(180deg, #0a1210, var(--fl-bg));
+  border-radius: 2rem;
+  padding: 1rem 0.85rem;
+  border: 1px solid rgba(0, 0, 0, 0.6);
+}
+
+.fl-mock-top {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  margin-bottom: 0.85rem;
+}
+
+.fl-mock-back {
+  color: var(--fl-muted);
+  font-size: 1.3rem;
+  line-height: 1;
+}
+
+.fl-mock-title {
+  font-family: var(--fl-font-display);
+  font-weight: 700;
+  font-size: 0.98rem;
+  color: var(--fl-text);
+}
+
+.fl-mock-badge {
+  margin-left: auto;
+  font-size: 0.7rem;
+  font-weight: 600;
+  padding: 0.2rem 0.5rem;
+  border-radius: 999px;
+  color: var(--fl-accent);
+  background: rgba(34, 197, 94, 0.12);
+  border: 1px solid rgba(34, 197, 94, 0.3);
+  font-variant-numeric: tabular-nums;
+}
+
+.fl-mock-card {
+  background: var(--fl-surface);
+  border: 1px solid var(--fl-border);
+  border-radius: var(--fl-r);
+  padding: 0.7rem;
+  margin-bottom: 0.6rem;
+}
+
+.fl-mock-label {
+  font-size: 0.62rem;
+  text-transform: uppercase;
+  letter-spacing: 0.09em;
+  color: var(--fl-faint);
+  margin-bottom: 0.3rem;
+  font-weight: 600;
+}
+
+.fl-mock-select {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.5rem 0.6rem;
+  border-radius: var(--fl-r-sm);
+  background: var(--fl-surface-2);
+  border: 1px solid var(--fl-border);
+  font-weight: 600;
+  font-size: 0.88rem;
+  color: var(--fl-text);
+}
+
+.fl-mock-select svg {
+  width: 0.9rem;
+  height: 0.9rem;
+  color: var(--fl-muted);
+}
+
+.fl-mock-prev {
+  border-left: 2px solid var(--fl-accent);
+  padding: 0.45rem 0.6rem;
+  margin-bottom: 0.6rem;
+  background: rgba(34, 197, 94, 0.06);
+  border-radius: 0 var(--fl-r-sm) var(--fl-r-sm) 0;
+}
+
+.fl-mock-prev-title {
+  display: block;
+  font-size: 0.66rem;
+  color: var(--fl-accent);
+  font-weight: 600;
+  margin-bottom: 0.25rem;
+}
+
+.fl-mock-prev-sets {
+  display: flex;
+  gap: 0.3rem;
+  flex-wrap: wrap;
+}
+
+.fl-mock-prev-sets span {
+  font-size: 0.68rem;
+  color: var(--fl-muted);
+  background: rgba(255, 255, 255, 0.04);
+  padding: 0.12rem 0.38rem;
+  border-radius: 0.35rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.fl-mock-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.5rem;
+  margin-bottom: 0.6rem;
+}
+
+.fl-mock-stepper {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: var(--fl-surface-2);
+  border: 1px solid var(--fl-border);
+  border-radius: var(--fl-r-sm);
+  padding: 0.3rem 0.4rem;
+}
+
+.fl-mock-stepper span {
+  width: 1.35rem;
+  height: 1.35rem;
+  display: grid;
+  place-items: center;
+  border-radius: 0.4rem;
+  background: rgba(190, 242, 172, 0.08);
+  color: var(--fl-accent);
+  font-weight: 700;
+  font-size: 0.85rem;
+}
+
+.fl-mock-stepper b {
+  font-family: var(--fl-font-display);
+  font-size: 1rem;
+  font-variant-numeric: tabular-nums;
+  color: var(--fl-text);
+}
+
+.fl-mock-save {
+  text-align: center;
+  padding: 0.6rem;
+  border-radius: var(--fl-r-sm);
+  background: var(--fl-gradient);
+  color: #04120b;
+  font-family: var(--fl-font-display);
+  font-weight: 700;
+  font-size: 0.88rem;
+  box-shadow: 0 6px 20px -6px var(--fl-glow);
+}
+
+.fl-mock-today {
+  display: grid;
+  gap: 0.35rem;
+}
+
+.fl-mock-set {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  padding: 0.4rem 0.55rem;
+  border-radius: var(--fl-r-sm);
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid var(--fl-border);
+  font-size: 0.76rem;
+  color: var(--fl-text);
+  font-variant-numeric: tabular-nums;
+}
+
+.fl-mock-set em {
+  margin-left: auto;
+  font-style: normal;
+  color: var(--fl-faint);
+  font-size: 0.7rem;
+}
+
+.fl-mock-n {
+  width: 1.15rem;
+  height: 1.15rem;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  background: rgba(34, 197, 94, 0.16);
+  color: var(--fl-accent);
+  font-size: 0.62rem;
+  font-weight: 700;
+}
+
+/* Orbiting proof chips */
+.fl-chip {
+  position: absolute;
+  display: grid;
+  gap: 0.15rem;
+  padding: 0.6rem 0.8rem;
+  border-radius: var(--fl-r);
+  background: rgba(11, 17, 15, 0.86);
+  backdrop-filter: blur(14px);
+  border: 1px solid var(--fl-border-strong);
+  box-shadow: var(--fl-shadow);
+  z-index: 2;
+}
+
+.fl-chip-1 { top: 12%; left: -0.5rem; }
+.fl-chip-2 { bottom: 12%; right: -0.5rem; }
+
+@media (min-width: 1200px) {
+  .fl-chip-1 { left: -3rem; }
+  .fl-chip-2 { right: -3rem; }
+}
+
+.fl-chip-k {
+  font-size: 0.6rem;
+  text-transform: uppercase;
+  letter-spacing: 0.09em;
+  color: var(--fl-faint);
+  font-weight: 600;
+}
+
+.fl-chip-v {
+  font-family: var(--fl-font-display);
+  font-weight: 700;
+  font-size: 1.05rem;
+  color: var(--fl-text);
+  font-variant-numeric: tabular-nums;
+}
+
+.fl-chip-up {
+  font-size: 0.68rem;
+  font-weight: 600;
+  color: var(--fl-accent);
+}
+
+.fl-chip-bar {
+  display: block;
+  height: 0.25rem;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.09);
+  overflow: hidden;
+}
+
+.fl-chip-bar i {
+  display: block;
+  height: 100%;
+  border-radius: 999px;
+  background: var(--fl-gradient);
+}
+
+/* Idle float — subtle, and killed under reduced motion.
+ *
+ * These animate translateY ONLY, and never sit on the same element as the
+ * phone's 3D tilt: a keyframe animation outranks an inline style, so a shared
+ * element would let this quietly override the pointer parallax in landing.js.
+ */
+/* preserve-3d is required, not cosmetic: .fl-hero-art's `perspective` only
+ * reaches its DIRECT children, so this wrapper sits between the perspective and
+ * the phone. Left flat it would collapse the phone's rotateY/rotateX into a flat
+ * ~2% squish and reduce the pointer parallax to an invisible wobble. */
+.fl-float { transform-style: preserve-3d; }
+
+.fl-float { animation: fl-float-flat 7s var(--fl-ease) infinite alternate; }
+.fl-float-slow { animation: fl-float-flat 9s var(--fl-ease) infinite alternate; }
+.fl-float-slower { animation: fl-float-flat 11s var(--fl-ease) infinite alternate -3s; }
+
+@keyframes fl-float-flat {
+  to { transform: translateY(-12px); }
+}
+
+/* ------------------------------------------------------------ stat strip -- */
+
+.fl-strip-sec {
+  padding-block: 0;
+}
+
+.fl-strip {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 1px;
+  background: var(--fl-border);
+  border: 1px solid var(--fl-border);
+  border-radius: var(--fl-r-lg);
+  overflow: hidden;
+}
+
+@media (min-width: 768px) {
+  .fl-strip { grid-template-columns: repeat(4, 1fr); }
+}
+
+.fl-strip-item {
+  background: var(--fl-bg);
+  padding: 1.5rem 1.15rem;
+  text-align: center;
+}
+
+.fl-strip-v {
+  display: block;
+  font-family: var(--fl-font-display);
+  font-weight: 800;
+  font-size: clamp(1.7rem, 3.5vw, 2.4rem);
+  line-height: 1;
+  margin-bottom: 0.4rem;
+  background: var(--fl-gradient);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  font-variant-numeric: tabular-nums;
+}
+
+.fl-strip-k {
+  font-size: 0.8rem;
+  color: var(--fl-muted);
+  line-height: 1.4;
+}
+
+/* ----------------------------------------------------------- split blocks -- */
+
+.fl-split {
+  display: grid;
+  gap: clamp(2rem, 5vw, 3.5rem);
+  align-items: center;
+}
+
+@media (min-width: 992px) {
+  .fl-split { grid-template-columns: 1fr 1fr; }
+  /* Source order keeps copy first for screen readers; the visual swap is
+     presentational only. */
+  .fl-split-rev .fl-split-art { order: 2; }
+  .fl-split-rev .fl-split-copy { order: 1; }
+}
+
+.fl-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: grid;
+  gap: 1.5rem;
+}
+
+.fl-list li {
+  display: flex;
+  gap: 0.9rem;
+  align-items: flex-start;
+}
+
+.fl-list-i {
+  flex: none;
+  width: 2rem;
+  height: 2rem;
+  display: grid;
+  place-items: center;
+  border-radius: 0.7rem;
+  background: rgba(34, 197, 94, 0.12);
+  border: 1px solid rgba(34, 197, 94, 0.28);
+  color: var(--fl-accent);
+}
+
+.fl-list-i svg { width: 1rem; height: 1rem; }
+
+.fl-list h3 {
+  font-family: var(--fl-font-display);
+  font-size: 1.05rem;
+  font-weight: 650;
+  margin: 0 0 0.3rem;
+  color: var(--fl-text);
+  letter-spacing: -0.01em;
+}
+
+.fl-list p {
+  margin: 0;
+  font-size: 0.94rem;
+  line-height: 1.6;
+  color: var(--fl-muted);
+}
+
+/* ------------------------------------------------------------ mock panes -- */
+
+.fl-pane {
+  border-radius: var(--fl-r-lg);
+  border: 1px solid var(--fl-border);
+  background: linear-gradient(180deg, rgba(28, 40, 35, 0.5), rgba(11, 17, 15, 0.8));
+  box-shadow: var(--fl-shadow);
+  overflow: hidden;
+}
+
+.fl-pane-head {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.7rem 0.9rem;
+  border-bottom: 1px solid var(--fl-border);
+  background: rgba(0, 0, 0, 0.28);
+}
+
+.fl-dot {
+  width: 0.5rem;
+  height: 0.5rem;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.14);
+}
+
+.fl-pane-title {
+  margin-left: 0.5rem;
+  font-size: 0.74rem;
+  color: var(--fl-faint);
+  font-weight: 500;
+}
+
+.fl-pane-body {
+  padding: 1rem;
+  display: grid;
+  gap: 0.7rem;
+}
+
+.fl-ex-row {
+  padding-bottom: 0.7rem;
+  border-bottom: 1px solid var(--fl-border);
+}
+
+.fl-ex-name {
+  font-weight: 600;
+  font-size: 0.9rem;
+  color: var(--fl-text);
+  margin-bottom: 0.4rem;
+}
+
+.fl-ex-name em {
+  font-style: normal;
+  font-size: 0.72rem;
+  color: var(--fl-faint);
+  font-weight: 500;
+  margin-left: 0.35rem;
+}
+
+.fl-ex-sets {
+  display: flex;
+  gap: 0.35rem;
+  flex-wrap: wrap;
+}
+
+.fl-ex-sets span {
+  font-size: 0.72rem;
+  padding: 0.2rem 0.45rem;
+  border-radius: 0.4rem;
+  background: rgba(34, 197, 94, 0.1);
+  border: 1px solid rgba(34, 197, 94, 0.2);
+  color: var(--fl-text);
+  font-variant-numeric: tabular-nums;
+}
+
+.fl-ex-total {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 0.82rem;
+  color: var(--fl-muted);
+}
+
+.fl-ex-total b {
+  font-family: var(--fl-font-display);
+  font-size: 1.1rem;
+  color: var(--fl-lime);
+}
+
+/* Plan pane */
+.fl-day {
+  padding: 0.7rem;
+  border-radius: var(--fl-r-sm);
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px solid var(--fl-border);
+}
+
+.fl-day-ghost {
+  opacity: 0.45;
+}
+
+.fl-day-head {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-weight: 600;
+  font-size: 0.88rem;
+  color: var(--fl-text);
+  margin-bottom: 0.5rem;
+}
+
+.fl-day-n {
+  font-size: 0.62rem;
+  font-weight: 700;
+  padding: 0.15rem 0.4rem;
+  border-radius: 0.35rem;
+  background: var(--fl-gradient);
+  color: #04120b;
+}
+
+.fl-day-ex {
+  display: flex;
+  justify-content: space-between;
+  padding: 0.28rem 0;
+  font-size: 0.8rem;
+  color: var(--fl-muted);
+}
+
+.fl-day-ex b {
+  color: var(--fl-text);
+  font-variant-numeric: tabular-nums;
+  font-weight: 600;
+}
+
+/* Calorie pane */
+.fl-cal-hero {
+  text-align: center;
+  padding: 0.4rem 0 0.2rem;
+}
+
+.fl-cal-n {
+  display: block;
+  font-family: var(--fl-font-display);
+  font-weight: 800;
+  font-size: 2.6rem;
+  line-height: 1;
+  background: var(--fl-gradient);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+.fl-cal-u {
+  font-size: 0.78rem;
+  color: var(--fl-faint);
+}
+
+.fl-landing .fl-macro-bar {
+  display: flex;
+  height: 0.6rem;
+  border-radius: 999px;
+  overflow: hidden;
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.fl-macro-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 0.5rem;
+  text-align: center;
+}
+
+.fl-macro-grid b {
+  display: block;
+  font-family: var(--fl-font-display);
+  font-size: 0.95rem;
+  color: var(--fl-text);
+}
+
+.fl-macro-grid span {
+  font-size: 0.68rem;
+  color: var(--fl-faint);
+}
+
+/* ---------------------------------------------------------------- bento -- */
+
+.fl-bento {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 1rem;
+}
+
+@media (min-width: 768px) {
+  .fl-bento { grid-template-columns: repeat(2, 1fr); }
+  .fl-bento-lg { grid-column: span 2; }
+  .fl-bento-wide { grid-column: span 2; }
+}
+
+@media (min-width: 1100px) {
+  .fl-bento { grid-template-columns: repeat(3, 1fr); }
+  .fl-bento-lg { grid-column: span 2; grid-row: span 1; }
+  .fl-bento-wide { grid-column: span 3; }
+}
+
+.fl-bento-card {
+  position: relative;
+  padding: 1.4rem;
+  border-radius: var(--fl-r-lg);
+  border: 1px solid var(--fl-border);
+  background: linear-gradient(180deg, rgba(28, 40, 35, 0.42), rgba(11, 17, 15, 0.7));
+  overflow: hidden;
+  transition: transform 0.35s var(--fl-ease), border-color 0.35s var(--fl-ease),
+    box-shadow 0.35s var(--fl-ease);
+}
+
+@media (hover: hover) {
+  .fl-bento-card:hover {
+    transform: translateY(-4px);
+    border-color: var(--fl-border-strong);
+    box-shadow: 0 18px 50px -20px rgba(0, 0, 0, 0.9), 0 0 40px -22px var(--fl-glow);
+  }
+}
+
+.fl-bento-head {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  margin-bottom: 0.5rem;
+}
+
+.fl-bento-head h3 {
+  font-family: var(--fl-font-display);
+  font-size: 1.1rem;
+  font-weight: 650;
+  margin: 0;
+  letter-spacing: -0.01em;
+}
+
+.fl-tag {
+  margin-left: auto;
+  font-size: 0.7rem;
+  font-weight: 700;
+  padding: 0.18rem 0.45rem;
+  border-radius: 999px;
+}
+
+.fl-tag-up {
+  color: var(--fl-accent);
+  background: rgba(34, 197, 94, 0.14);
+  border: 1px solid rgba(34, 197, 94, 0.3);
+}
+
+.fl-bento-sub {
+  font-size: 0.9rem;
+  line-height: 1.58;
+  color: var(--fl-muted);
+  margin: 0 0 1rem;
+}
+
+.fl-spark {
+  width: 100%;
+  height: 90px;
+  display: block;
+}
+
+/* Line draws itself in when the card scrolls into view.
+ *
+ * The hidden start state is gated on .anim-ready — the class ui.js adds only
+ * when it is actually going to run the reveal. Ungated, a browser with JS off
+ * would keep stroke-dashoffset at 400 forever and the chart would simply never
+ * appear. Same rule as .reveal in style.css: never hide what you cannot unhide.
+ */
+/* Unitless 1, because the <path> declares pathLength="1" — the dash always
+ * spans exactly the path, whatever its true geometry. */
+.anim-ready .fl-spark-line {
+  stroke-dasharray: 1;
+  stroke-dashoffset: 1;
+}
+
+.anim-ready .reveal.in .fl-spark-line {
+  animation: fl-draw 1.5s var(--fl-ease) forwards;
+}
+
+.anim-ready .fl-spark-fill { opacity: 0; }
+
+.anim-ready .reveal.in .fl-spark-fill {
+  animation: fl-fade-in 1s var(--fl-ease) 0.55s forwards;
+}
+
+@keyframes fl-draw {
+  from { stroke-dashoffset: 1; }
+  to { stroke-dashoffset: 0; }
+}
+
+@keyframes fl-fade-in {
+  to { opacity: 1; }
+}
+
+.fl-alert-mock {
+  display: flex;
+  gap: 0.6rem;
+  align-items: flex-start;
+  padding: 0.7rem;
+  border-radius: var(--fl-r-sm);
+  background: rgba(251, 191, 36, 0.08);
+  border: 1px solid rgba(251, 191, 36, 0.28);
+  font-size: 0.8rem;
+  line-height: 1.5;
+  color: var(--fl-text);
+}
+
+.fl-alert-icon {
+  flex: none;
+  width: 1.15rem;
+  height: 1.15rem;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  background: var(--fl-warning);
+  color: #1b1403;
+  font-weight: 800;
+  font-size: 0.72rem;
+}
+
+.fl-bars {
+  display: flex;
+  align-items: flex-end;
+  gap: 0.35rem;
+  height: 5rem;
+}
+
+.fl-bars span {
+  flex: 1;
+  height: var(--h);
+  border-radius: 0.3rem 0.3rem 0 0;
+  background: rgba(190, 242, 172, 0.16);
+  transform-origin: bottom;
+}
+
+.fl-bars span.is-now {
+  background: var(--fl-gradient);
+}
+
+.anim-ready .reveal.in .fl-bars span {
+  animation: fl-grow 0.7s var(--fl-ease) backwards;
+}
+
+.anim-ready .reveal.in .fl-bars span:nth-child(1) { animation-delay: 0.05s; }
+.anim-ready .reveal.in .fl-bars span:nth-child(2) { animation-delay: 0.1s; }
+.anim-ready .reveal.in .fl-bars span:nth-child(3) { animation-delay: 0.15s; }
+.anim-ready .reveal.in .fl-bars span:nth-child(4) { animation-delay: 0.2s; }
+.anim-ready .reveal.in .fl-bars span:nth-child(5) { animation-delay: 0.25s; }
+.anim-ready .reveal.in .fl-bars span:nth-child(6) { animation-delay: 0.3s; }
+.anim-ready .reveal.in .fl-bars span:nth-child(7) { animation-delay: 0.35s; }
+.anim-ready .reveal.in .fl-bars span:nth-child(8) { animation-delay: 0.4s; }
+
+@keyframes fl-grow {
+  from { transform: scaleY(0); }
+  to { transform: scaleY(1); }
+}
+
+.fl-mini-stats {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.75rem;
+}
+
+.fl-mini-stats div {
+  padding: 0.7rem;
+  border-radius: var(--fl-r-sm);
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid var(--fl-border);
+  text-align: center;
+}
+
+.fl-mini-stats b {
+  display: block;
+  font-family: var(--fl-font-display);
+  font-size: 1.3rem;
+  color: var(--fl-lime);
+}
+
+.fl-mini-stats span {
+  font-size: 0.68rem;
+  color: var(--fl-faint);
+}
+
+.fl-legend-row {
+  display: flex;
+  gap: 1.15rem;
+  flex-wrap: wrap;
+  font-size: 0.8rem;
+  color: var(--fl-muted);
+}
+
+.fl-legend-row i {
+  display: inline-block;
+  width: 0.6rem;
+  height: 0.6rem;
+  border-radius: 50%;
+  margin-right: 0.35rem;
+}
+
+/* ---------------------------------------------------------------- steps -- */
+
+.fl-steps {
+  list-style: none;
+  counter-reset: step;
+  padding: 0;
+  margin: 0;
+  display: grid;
+  gap: 1rem;
+}
+
+@media (min-width: 768px) {
+  .fl-steps { grid-template-columns: repeat(3, 1fr); }
+}
+
+.fl-step {
+  position: relative;
+  padding: 1.6rem 1.4rem;
+  border-radius: var(--fl-r-lg);
+  border: 1px solid var(--fl-border);
+  background: linear-gradient(180deg, rgba(28, 40, 35, 0.4), rgba(11, 17, 15, 0.7));
+}
+
+.fl-step-n {
+  display: grid;
+  place-items: center;
+  width: 2.4rem;
+  height: 2.4rem;
+  margin-bottom: 0.9rem;
+  border-radius: 50%;
+  background: var(--fl-gradient);
+  color: #04120b;
+  font-family: var(--fl-font-display);
+  font-weight: 800;
+  font-size: 1.05rem;
+  box-shadow: 0 6px 22px -8px var(--fl-glow);
+}
+
+.fl-step h3 {
+  font-family: var(--fl-font-display);
+  font-size: 1.1rem;
+  font-weight: 650;
+  margin: 0 0 0.4rem;
+}
+
+.fl-step p {
+  margin: 0;
+  font-size: 0.92rem;
+  line-height: 1.6;
+  color: var(--fl-muted);
+}
+
+/* ------------------------------------------------------------------ FAQ -- */
+
+.fl-faq {
+  --bs-accordion-bg: transparent;
+  --bs-accordion-border-color: var(--fl-border);
+  --bs-accordion-border-radius: var(--fl-r);
+  --bs-accordion-inner-border-radius: var(--fl-r);
+  --bs-accordion-btn-color: var(--fl-text);
+  --bs-accordion-btn-bg: rgba(28, 40, 35, 0.35);
+  --bs-accordion-active-bg: rgba(34, 197, 94, 0.08);
+  --bs-accordion-active-color: var(--fl-text);
+  --bs-accordion-body-color: var(--fl-muted);
+  --bs-accordion-btn-focus-box-shadow: 0 0 0 3px rgba(34, 197, 94, 0.25);
+  display: grid;
+  gap: 0.6rem;
+}
+
+.fl-faq .accordion-item {
+  border: 1px solid var(--fl-border);
+  border-radius: var(--fl-r);
+  overflow: hidden;
+  background: rgba(11, 17, 15, 0.5);
+  transition: border-color 0.25s var(--fl-ease);
+}
+
+.fl-faq .accordion-item:hover {
+  border-color: var(--fl-border-strong);
+}
+
+.fl-faq .accordion-button {
+  font-family: var(--fl-font-display);
+  font-weight: 600;
+  font-size: 1rem;
+  padding: 1.05rem 1.15rem;
+  background: transparent;
+  color: var(--fl-text);
+  box-shadow: none;
+}
+
+.fl-faq .accordion-button:not(.collapsed) {
+  background: rgba(34, 197, 94, 0.07);
+  color: var(--fl-text);
+  box-shadow: none;
+}
+
+/* Bootstrap zeroes the outline and draws focus purely with a box-shadow, so the
+ * `box-shadow: none` above silently removes the ONLY focus indicator these
+ * buttons have. Put a visible ring back for keyboard users. */
+.fl-faq .accordion-button:focus-visible {
+  box-shadow: var(--bs-accordion-btn-focus-box-shadow);
+  outline: 2px solid var(--fl-accent);
+  outline-offset: -2px;
+}
+
+/* Bootstrap's default chevron is a dark SVG — recolour it for a dark UI. */
+.fl-faq .accordion-button::after {
+  filter: invert(74%) sepia(24%) saturate(600%) hue-rotate(85deg) brightness(95%);
+}
+
+.fl-faq .accordion-body {
+  padding: 0 1.15rem 1.15rem;
+  font-size: 0.94rem;
+  line-height: 1.68;
+  color: var(--fl-muted);
+}
+
+/* ------------------------------------------------------------------ CTA -- */
+
+.fl-cta-sec {
+  padding-bottom: clamp(3rem, 7vw, 5rem);
+}
+
+.fl-cta {
+  position: relative;
+  text-align: center;
+  padding: clamp(2.5rem, 6vw, 4rem) 1.5rem;
+  border-radius: var(--fl-r-xl);
+  border: 1px solid var(--fl-border-strong);
+  background: linear-gradient(180deg, rgba(28, 40, 35, 0.6), rgba(11, 17, 15, 0.85));
+  overflow: hidden;
+}
+
+.fl-cta-glow {
+  position: absolute;
+  top: -60%;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 36rem;
+  height: 36rem;
+  background: radial-gradient(circle, var(--fl-glow-soft), transparent 62%);
+  filter: blur(40px);
+  pointer-events: none;
+}
+
+/* Lift the content above the glow. The :not() is load-bearing — .fl-cta-glow is
+ * a direct child too, and `> *` carries the same specificity as the rule that
+ * positions it absolutely, so a bare `> *` would win on source order and drop a
+ * 36rem block into the flow above the heading. */
+.fl-cta > *:not(.fl-cta-glow) {
+  position: relative;
+  z-index: 1;
+}
+
+.fl-cta .fl-sub {
+  margin: 0 auto 1.8rem;
+}
+
+/* --------------------------------------------------------------- footer -- */
+
+.fl-foot {
+  border-top: 1px solid var(--fl-border);
+  background: var(--fl-bg-2);
+  padding-block: 2.5rem;
+}
+
+.fl-foot-inner {
+  display: grid;
+  gap: 1.25rem;
+  justify-items: center;
+  text-align: center;
+}
+
+.fl-foot-brand {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-family: var(--fl-font-display);
+  font-weight: 800;
+  color: var(--fl-text);
+}
+
+.fl-foot-links {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 0.35rem 1.15rem;
+}
+
+.fl-foot-links a {
+  color: var(--fl-muted);
+  font-size: 0.88rem;
+  text-decoration: none;
+  transition: color 0.2s var(--fl-ease);
+}
+
+.fl-foot-links a:hover {
+  color: var(--fl-accent);
+}
+
+.fl-foot-note {
+  font-size: 0.78rem;
+  color: var(--fl-faint);
+  max-width: 34rem;
+  margin: 0;
+  line-height: 1.6;
+}
+
+/* --------------------------------------------------- entrance animations -- */
+
+/* Hero elements animate on load rather than on scroll; the delay ladder is the
+   choreography. Gated on .anim-ready so a JS-less page shows everything. */
+.anim-ready .fl-hero-sec .fl-enter {
+  opacity: 0;
+  animation: fl-rise 0.85s var(--fl-ease) forwards;
+}
+
+.anim-ready .fl-hero-sec .fl-d1 { animation-delay: 0.08s; }
+.anim-ready .fl-hero-sec .fl-d2 { animation-delay: 0.16s; }
+.anim-ready .fl-hero-sec .fl-d3 { animation-delay: 0.26s; }
+.anim-ready .fl-hero-sec .fl-d4 { animation-delay: 0.36s; }
+
+@keyframes fl-rise {
+  from { opacity: 0; transform: translateY(26px); }
+  to { opacity: 1; transform: none; }
+}
+
+/* The phone must land on its 3D resting angle, not flat. */
+.anim-ready .fl-hero-sec .fl-hero-art.fl-enter {
+  animation-name: fl-rise-art;
+}
+
+@keyframes fl-rise-art {
+  from { opacity: 0; transform: translateY(30px); }
+  to { opacity: 1; transform: none; }
+}
+
+/* ------------------------------------------------------- reduced motion -- */
+
+@media (prefers-reduced-motion: reduce) {
+  .fl-aurora span,
+  .fl-float,
+  .fl-float-slow,
+  .fl-float-slower,
+  .fl-scroll-cue span {
+    animation: none !important;
+  }
+
+  .fl-phone {
+    transform: none;
+  }
+
+  .anim-ready .fl-hero-sec .fl-enter {
+    opacity: 1;
+    animation: none !important;
+  }
+
+  .anim-ready .fl-spark-line { stroke-dashoffset: 0; }
+  .anim-ready .fl-spark-fill { opacity: 1; }
+
+  .anim-ready .reveal.in .fl-bars span,
+  .anim-ready .reveal.in .fl-spark-line,
+  .anim-ready .reveal.in .fl-spark-fill {
+    animation: none !important;
+  }
+
+  .fl-bento-card:hover { transform: none; }
+}
