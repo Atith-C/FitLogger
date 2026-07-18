@@ -1,0 +1,161 @@
+{% extends "base.html" %}
+
+{% block title %}Generate plan — Fit Logger{% endblock %}
+
+{% block content %}
+  <div class="fl-card fl-enter mb-3">
+    <span class="fl-badge fl-badge-active mb-3">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="width:.7rem;height:.7rem"><path d="M12 3v2M12 19v2M5 12H3M21 12h-2M6 6 4.6 4.6M19.4 4.6 18 6M6 18l-1.4 1.4M19.4 19.4 18 18"/><circle cx="12" cy="12" r="3.5"/></svg>
+      AI planner
+    </span>
+    <h1 class="h4 mb-1">Generate a workout plan</h1>
+    <p class="text-secondary small mb-4">
+      Your plan is built from the profile below. Change any of it on your
+      profile page first if it is out of date.
+    </p>
+
+    <div class="fl-inset p-3 mb-2">
+      <dl class="row mb-0">
+        <dt class="col-7 fw-normal text-secondary">Goal</dt>
+        <dd class="col-5 text-end mb-2">{{ profile.get_goal_display }}</dd>
+
+        <dt class="col-7 fw-normal text-secondary">Training days per week</dt>
+        <dd class="col-5 text-end mb-2">{{ profile.days_per_week }}</dd>
+
+        <dt class="col-7 fw-normal text-secondary">Experience</dt>
+        <dd class="col-5 text-end mb-2">{{ profile.get_experience_level_display }}</dd>
+
+        <dt class="col-7 fw-normal text-secondary">Location</dt>
+        <dd class="col-5 text-end mb-2">{{ profile.get_workout_location_display }}</dd>
+
+        <dt class="col-7 fw-normal text-secondary">Session length</dt>
+        <dd class="col-5 text-end mb-0">{{ profile.session_duration }} min</dd>
+      </dl>
+    </div>
+
+    <a href="{% url 'users:profile' %}" class="btn btn-link w-100 mt-1">
+      Edit profile
+    </a>
+  </div>
+
+  {% if has_existing_plan %}
+    <div class="alert alert-secondary reveal" role="alert">
+      Generating a new plan will replace your current active plan. The old one
+      is kept and stays viewable in your plan history.
+    </div>
+  {% endif %}
+
+  <form method="post" id="generate-form">
+    {% csrf_token %}
+    <button type="submit" class="btn btn-success w-100 fl-btn-xl" id="generate-button" data-no-busy>
+      Generate my plan
+    </button>
+  </form>
+
+  {% comment %}
+    The real wait. Generating a plan is a round-trip to the model provider that
+    can take the best part of a minute, and the page genuinely has nothing to
+    show until it returns — so this is a place a skeleton earns its keep.
+
+    It is built to the shape of the plan that is actually coming: one card per
+    training day from the profile above, so the placeholder matches the result.
+    Hidden by default and revealed by the script below, so a JS-less browser
+    just sees the ordinary button and a normal (if slow) form post.
+  {% endcomment %}
+  <div id="generate-skeleton" hidden>
+    <div class="fl-card mb-3">
+      <div class="d-flex align-items-center gap-2 mb-1">
+        <span class="fl-spin" aria-hidden="true"></span>
+        <h2 class="h6 mb-0" id="generate-status">Reading your profile…</h2>
+      </div>
+      <p class="text-secondary small mb-0">
+        This usually takes 10–30 seconds. Keep this tab open — your plan is being
+        written now.
+      </p>
+    </div>
+
+    <div class="fl-plan-skeleton" aria-hidden="true">
+      {% comment %}
+        Django has no range tag; ljust turns the day count into a string of that
+        many characters, which is the standard idiom for "repeat N times".
+      {% endcomment %}
+      {% for _ in ""|ljust:profile.days_per_week %}
+        <div class="fl-plan-skeleton-day">
+          <div class="fl-skeleton fl-skeleton-text fl-skeleton-w-40 mb-3"></div>
+          <div class="fl-skeleton fl-skeleton-text fl-skeleton-w-80"></div>
+          <div class="fl-skeleton fl-skeleton-text fl-skeleton-w-60"></div>
+          <div class="fl-skeleton fl-skeleton-text fl-skeleton-w-80"></div>
+        </div>
+      {% endfor %}
+    </div>
+  </div>
+
+  <p class="fl-phase-note mt-3 mb-0">
+    Fit Logger provides general fitness planning only. It is not medical advice.
+    If you have an injury or a health condition, speak to a qualified
+    professional before starting a new training programme.
+  </p>
+{% endblock %}
+
+{% block scripts %}
+  <script>
+    // Generation is a real, slow round-trip. Swap the form for a skeleton of the
+    // plan being written, and make a second submit impossible — an impatient
+    // double-click would otherwise fire a second billed API call.
+    (function () {
+      "use strict";
+
+      var form = document.getElementById("generate-form");
+      var button = document.getElementById("generate-button");
+      var skeleton = document.getElementById("generate-skeleton");
+      var status = document.getElementById("generate-status");
+      if (!form || !button || !skeleton) {
+        return;
+      }
+
+      // Honest, ordered narration of what the server is actually doing. The
+      // timings are a rough guide, not a progress measurement — so it never
+      // claims to be finished, it just stops advancing at the last step.
+      var STEPS = [
+        "Reading your profile…",
+        "Choosing exercises for your equipment…",
+        "Balancing your training week…",
+        "Setting sets and rep ranges…",
+        "Checking the plan makes sense…",
+      ];
+
+      var timer = null;
+
+      form.addEventListener("submit", function () {
+        button.disabled = true;
+        form.hidden = true;
+        skeleton.hidden = false;
+
+        if (!status || window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+          return;
+        }
+        var step = 0;
+        timer = window.setInterval(function () {
+          step = Math.min(step + 1, STEPS.length - 1);
+          status.textContent = STEPS[step];
+        }, 4500);
+      });
+
+      // Back from the finished plan restores this page from the bfcache exactly
+      // as it was left: no form, a skeleton for a plan that already arrived, and
+      // the status text still cycling forever. Undo all of it.
+      window.addEventListener("pageshow", function () {
+        if (timer !== null) {
+          window.clearInterval(timer);
+          timer = null;
+        }
+        skeleton.hidden = true;
+        form.hidden = false;
+        button.disabled = false;
+        if (status) {
+          status.textContent = STEPS[0];
+        }
+      });
+    })();
+  </script>
+{% endblock %}

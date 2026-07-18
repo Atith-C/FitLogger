@@ -1,0 +1,120 @@
+{% extends "base.html" %}
+
+{% block title %}Your plan — Fit Logger{% endblock %}
+
+{% block content %}
+
+  {% if plan %}
+    {% comment %}
+      Every value below is a field from the validated plan_json. Django
+      auto-escapes it. Raw AI output is never marked safe.
+    {% endcomment %}
+    <div class="fl-hero fl-enter mb-3">
+      <div class="position-relative" style="z-index:1">
+        {% if not plan.is_active %}
+          <span class="fl-badge fl-badge-muted mb-2">Archived plan</span>
+        {% else %}
+          <span class="fl-badge fl-badge-active fl-badge-dot mb-2">Active plan</span>
+        {% endif %}
+
+        <h1 class="h3 mb-2">{{ plan.plan_json.plan_name }}</h1>
+
+        {% if plan.plan_json.summary %}
+          <p class="text-secondary mb-3">{{ plan.plan_json.summary }}</p>
+        {% endif %}
+
+        <p class="text-secondary small mb-0">
+          {{ plan.days_per_week }} day{{ plan.days_per_week|pluralize }} per week ·
+          {{ plan.get_goal_display }} ·
+          {{ plan.get_experience_level_display }} ·
+          {{ plan.session_duration }} min ·
+          created {{ plan.created_at|date:"j M Y" }}
+        </p>
+      </div>
+    </div>
+
+    {% for day in plan.plan_json.days %}
+      <div class="fl-card fl-lift reveal mb-3">
+        <div class="d-flex gap-3 mb-3">
+          <span class="fl-day-badge" aria-hidden="true">{{ day.day_number }}</span>
+          <div class="align-self-center">
+            <p class="text-uppercase text-secondary small mb-0" style="letter-spacing:.08em">Day {{ day.day_number }}</p>
+            <h2 class="h5 mb-0">{{ day.day_name }}</h2>
+          </div>
+        </div>
+        {% if day.focus %}
+          <p class="text-secondary small mb-3">{{ day.focus }}</p>
+        {% endif %}
+
+        <ul class="list-unstyled mb-0">
+          {% for exercise in day.exercises %}
+            <li class="fl-plan-exercise">
+              <div class="d-flex justify-content-between align-items-baseline gap-2">
+                <span class="fw-semibold">{{ exercise.exercise }}</span>
+                <span class="fl-badge" style="background:rgba(190,242,172,.08);color:var(--fl-accent);flex:0 0 auto">
+                  {{ exercise.sets }} × {{ exercise.rep_range }}
+                </span>
+              </div>
+              {% if exercise.notes %}
+                <p class="text-secondary small mb-0 mt-1">{{ exercise.notes }}</p>
+              {% endif %}
+            </li>
+          {% endfor %}
+        </ul>
+      </div>
+    {% endfor %}
+
+    <a href="{% url 'ai_planner:edit_plan' plan.id %}" class="btn btn-success w-100 mb-2 fl-btn-lg">
+      Edit this plan
+    </a>
+
+    <a href="{% url 'ai_planner:generate_plan' %}" class="btn btn-outline-light w-100 mb-2 fl-btn-icon">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" style="width:1.05rem;height:1.05rem"><path d="M21 2v6h-6M3 12a9 9 0 0 1 15-6.7L21 8M3 22v-6h6M21 12a9 9 0 0 1-15 6.7L3 16"/></svg>
+      Regenerate plan
+    </a>
+
+    <form method="post" action="{% url 'ai_planner:delete_plan' plan.id %}" class="mb-3"
+          onsubmit="return confirm('Delete this plan permanently? This cannot be undone.');">
+      {% csrf_token %}
+      <button type="submit" class="btn btn-outline-danger w-100">Delete this plan</button>
+    </form>
+
+  {% else %}
+    <div class="fl-card fl-enter text-center mb-3">
+      <span class="fl-empty-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="8" y="3" width="8" height="4" rx="1.5"/><path d="M8 5H6a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-2M9 12h6M9 16h4"/></svg></span>
+      <h1 class="h5 mb-2">No workout plan yet</h1>
+      <p class="text-secondary small mb-3">
+        Generate a plan built around your goal, experience and available time.
+      </p>
+      <a href="{% url 'ai_planner:generate_plan' %}" class="btn btn-success fl-btn-lg">
+        Generate my plan
+      </a>
+    </div>
+  {% endif %}
+
+  {% if history %}
+    <div class="fl-card reveal mb-3">
+      <h2 class="h6 text-uppercase text-secondary mb-3">Previous plans</h2>
+      <ul class="list-unstyled mb-0">
+        {% for old_plan in history %}
+          <li class="fl-prev-set">
+            <a href="{% url 'ai_planner:plan_detail' old_plan.id %}" class="text-decoration-none flex-grow-1">
+              {{ old_plan.plan_json.plan_name|default:"Workout plan" }}
+            </a>
+            <span class="text-secondary small me-2">{{ old_plan.created_at|date:"j M Y" }}</span>
+            <form method="post" action="{% url 'ai_planner:delete_plan' old_plan.id %}" class="m-0"
+                  onsubmit="return confirm('Delete this plan permanently? This cannot be undone.');">
+              {% csrf_token %}
+              <button type="submit" class="btn btn-sm btn-outline-danger" aria-label="Delete plan">✕</button>
+            </form>
+          </li>
+        {% endfor %}
+      </ul>
+    </div>
+  {% endif %}
+
+  <p class="fl-phase-note mb-0">
+    General fitness guidance only — not medical advice.
+  </p>
+
+{% endblock %}

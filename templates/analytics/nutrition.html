@@ -1,0 +1,151 @@
+{% extends "base.html" %}
+
+{% block title %}Nutrition — Fit Logger{% endblock %}
+
+{% block content %}
+
+  <div class="fl-enter mb-3">
+    <p class="fl-eyebrow mb-1">Fuel</p>
+    <h1 class="h3 mb-1">Nutrition</h1>
+    <p class="text-secondary small mb-0">
+      Turn your calorie target into daily protein, fat, carb and fibre goals.
+    </p>
+  </div>
+
+  {% if needs_calories %}
+    <div class="fl-card reveal text-center mb-3">
+      <span class="fl-empty-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2s5 4 5 9a5 5 0 0 1-10 0c0-1.5.6-2.8 1.3-3.8C9 9.5 12 8 12 2Z"/></svg></span>
+      <h2 class="h5 mb-2">Calculate your calories first</h2>
+      <p class="text-secondary small mb-3">
+        Your macro targets are based on your daily calories. Work those out once,
+        then come back here.
+      </p>
+      <a href="{% url 'analytics:calories' %}" class="btn btn-success fl-btn-lg">
+        Go to the calorie calculator
+      </a>
+    </div>
+
+  {% else %}
+    {# Goal selector — reads its calories from the saved calorie calculation. #}
+    <form method="get" class="fl-card reveal mb-3">
+      <label for="goal-select" class="form-label">Your goal</label>
+      <div class="d-flex gap-2">
+        <select name="goal" id="goal-select" class="form-select form-select-lg">
+          {% for target in targets %}
+            <option value="{{ target.key }}" {% if target.key == selected.key %}selected{% endif %}>
+              {{ target.label }}{% if target.sublabel %} ({{ target.sublabel }}){% endif %} — {{ target.calories }} kcal
+            </option>
+          {% endfor %}
+        </select>
+        <button type="submit" class="btn btn-outline-light">Update</button>
+      </div>
+    </form>
+
+    <div class="fl-card reveal mb-3">
+      <p class="text-uppercase text-secondary small mb-1">{{ selected.label }}</p>
+      <p class="h2 mb-3"><span class="fl-gradient-text">{{ macros.calories }}</span> <span class="h6 text-secondary">kcal / day</span></p>
+
+      {# Where those calories come from #}
+      <div class="fl-macro-split mb-2">
+        <span class="fl-seg-p" style="width:{% widthratio macros.protein.kcal macros.calories 100 %}%"></span>
+        <span class="fl-seg-f" style="width:{% widthratio macros.fat.kcal macros.calories 100 %}%"></span>
+        <span class="fl-seg-c" style="width:{% widthratio macros.carbs.kcal macros.calories 100 %}%"></span>
+      </div>
+      <div class="fl-legend">
+        <span><i class="fl-seg-p"></i>Protein {{ macros.protein.grams }} g</span>
+        <span><i class="fl-seg-f"></i>Fat {{ macros.fat.grams }} g</span>
+        <span><i class="fl-seg-c"></i>Carbs {{ macros.carbs.grams }} g</span>
+      </div>
+    </div>
+
+    {# --- Protein (top priority) --- #}
+    <div class="fl-card reveal mb-3">
+      <div class="d-flex justify-content-between align-items-baseline mb-1">
+        <h2 class="h5 mb-0">Protein</h2>
+        <span class="fl-macro-value">{{ macros.protein.grams }} g</span>
+      </div>
+      <p class="text-secondary small mb-2">
+        Priority macro — {{ macros.protein.per_kg }} g per kg of bodyweight
+        (within the 1.6–2.0 g/kg working range).
+      </p>
+      <div class="fl-formula">
+        <div>Bodyweight × {{ macros.protein.per_kg }} = {{ macros.bodyweight_kg }} × {{ macros.protein.per_kg }} = <strong>{{ macros.protein.grams }} g</strong></div>
+        <div>1 g protein = 4 kcal → {{ macros.protein.grams }} × 4 = <strong>{{ macros.protein.kcal }} kcal</strong></div>
+      </div>
+    </div>
+
+    {# --- Fat --- #}
+    <div class="fl-card reveal mb-3">
+      <div class="d-flex justify-content-between align-items-baseline mb-1">
+        <h2 class="h5 mb-0">Fat</h2>
+        <span class="fl-macro-value">{{ macros.fat.grams }} g</span>
+      </div>
+      <p class="text-secondary small mb-2">{{ macros.fat.percent }}% of your daily calories.</p>
+      <div class="fl-formula">
+        <div>Calories × 0.25 = {{ macros.calories }} × 0.25 = <strong>{{ macros.fat.kcal }} kcal</strong></div>
+        <div>1 g fat = 9 kcal → {{ macros.fat.kcal }} ÷ 9 = <strong>{{ macros.fat.grams }} g</strong></div>
+      </div>
+    </div>
+
+    {# --- Carbohydrates (remaining calories) --- #}
+    <div class="fl-card reveal mb-3">
+      <div class="d-flex justify-content-between align-items-baseline mb-1">
+        <h2 class="h5 mb-0">Carbohydrates</h2>
+        <span class="fl-macro-value">{{ macros.carbs.grams }} g</span>
+      </div>
+      <p class="text-secondary small mb-2">Whatever calories remain after protein and fat.</p>
+      <div class="fl-formula">
+        <div>Calories − protein − fat = {{ macros.calories }} − {{ macros.protein.kcal }} − {{ macros.fat.kcal }} = <strong>{{ macros.carbs.kcal }} kcal</strong></div>
+        <div>1 g carb = 4 kcal → {{ macros.carbs.kcal }} ÷ 4 = <strong>{{ macros.carbs.grams }} g</strong></div>
+      </div>
+    </div>
+
+    {# --- Fibre --- #}
+    <div class="fl-card reveal mb-3">
+      <div class="d-flex justify-content-between align-items-baseline mb-1">
+        <h2 class="h5 mb-0">Fibre</h2>
+        <span class="fl-macro-value">{{ macros.fibre.min }}–{{ macros.fibre.max }} g</span>
+      </div>
+      <p class="text-secondary small mb-0">
+        Aim for {{ macros.fibre.min }}–{{ macros.fibre.max }} g per day for a healthy gut.
+        This is a flat target, not calculated from your calories.
+      </p>
+    </div>
+
+    {# --- Food source tables --- #}
+    {% for group_name, tables in table_groups %}
+      <h2 class="h5 mt-4 mb-2 reveal">{{ group_name }}</h2>
+      {% for table in tables %}
+        <div class="fl-card reveal mb-3">
+          <h3 class="h6 mb-0">{{ table.title }}</h3>
+          <p class="text-secondary small mb-2">{{ table.subtitle }}</p>
+          {% if table.note %}
+            <p class="text-secondary small fst-italic mb-2">{{ table.note }}</p>
+          {% endif %}
+          <div class="table-responsive">
+            <table class="table table-dark table-sm fl-food-table {% if table.has_density %}fl-has-density{% endif %} mb-0">
+              <thead>
+                <tr>
+                  {% for header in table.headers %}<th scope="col">{{ header }}</th>{% endfor %}
+                </tr>
+              </thead>
+              <tbody>
+                {% for row in table.rows %}
+                  <tr>
+                    {% for cell in row %}<td>{{ cell }}</td>{% endfor %}
+                  </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      {% endfor %}
+    {% endfor %}
+
+    <p class="fl-phase-note mb-0">
+      These are estimates to guide food choices, not exact figures or medical or
+      dietary advice. Adjust based on your real progress over 2–3 weeks.
+    </p>
+  {% endif %}
+
+{% endblock %}

@@ -1,0 +1,75 @@
+{% extends "base.html" %}
+
+{% block title %}Profile — Fit Logger{% endblock %}
+
+{% block content %}
+  <div class="fl-enter mb-3">
+    <p class="fl-eyebrow mb-1">Your account</p>
+    <h1 class="h3 mb-1">Fitness profile</h1>
+    <p class="text-secondary small mb-0">
+      These settings shape your AI workout plan and how your adherence is calculated.
+    </p>
+  </div>
+
+  <div class="fl-card reveal">
+    <form method="post" novalidate>
+      {% csrf_token %}
+
+      {% for field in form %}
+        <div class="mb-3">
+          <label for="{{ field.id_for_label }}" class="form-label">{{ field.label }}</label>
+          {{ field }}
+
+          {% if field.errors %}
+            <div class="text-danger small mt-1">
+              {% for error in field.errors %}{{ error }}{% endfor %}
+            </div>
+          {% endif %}
+
+          {% if field.help_text %}
+            <div class="form-text">{{ field.help_text }}</div>
+          {% endif %}
+        </div>
+      {% endfor %}
+
+      <button type="submit" class="btn btn-success w-100 fl-btn-lg mt-2">Save profile</button>
+    </form>
+  </div>
+
+  {# Profile sharing permission (Phase D). #}
+  <div class="fl-card reveal mt-3">
+    <div class="fl-section-head" style="margin-bottom:.6rem">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6Z"/><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7-10-7-10-7Z"/></svg>
+      <h2 class="h6 text-uppercase text-secondary small mb-0">Allow admin to view my profile</h2>
+    </div>
+
+    <p class="text-secondary small mb-3">
+      {% if profile.profile_shared %}
+        Your coach can currently see your full profile, nutrition and progress.
+      {% else %}
+        Your profile is private. Your coach can still message you, but cannot see
+        your details until you enable this.
+      {% endif %}
+    </p>
+
+    <div class="d-flex gap-2">
+      <form method="post" action="{% url 'users:toggle_profile_sharing' %}" class="flex-fill">
+        {% csrf_token %}
+        <input type="hidden" name="share" value="on">
+        <button type="submit" class="btn w-100 {% if profile.profile_shared %}btn-success{% else %}btn-outline-light{% endif %}"
+                {% if profile.profile_shared %}disabled{% endif %}>Enable</button>
+      </form>
+      <form method="post" action="{% url 'users:toggle_profile_sharing' %}" class="flex-fill">
+        {% csrf_token %}
+        <input type="hidden" name="share" value="off">
+        <button type="submit" class="btn w-100 {% if not profile.profile_shared %}btn-danger{% else %}btn-outline-light{% endif %}"
+                {% if not profile.profile_shared %}disabled{% endif %}>Disable</button>
+      </form>
+    </div>
+  </div>
+
+  {# Join date — date_joined is set automatically at signup. #}
+  <p class="text-secondary small text-center mt-3 mb-0">
+    You Joined FitLogger on {{ user.date_joined|date:"d/m/Y" }} !
+  </p>
+{% endblock %}

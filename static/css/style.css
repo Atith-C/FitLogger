@@ -1,0 +1,1955 @@
+/* ==========================================================================
+   Fit Logger — "Aurora Athletic" design system
+   --------------------------------------------------------------------------
+   Mobile-first, dark, one-handed-in-the-gym. Built as a reskin layer that
+   sits on top of Bootstrap 5: it keeps every Bootstrap grid/utility class the
+   templates rely on, but replaces the entire look — deep-black canvas, an
+   emerald→lime energy gradient, glassmorphic surfaces, soft glow, bold display
+   type, and purposeful, reduced-motion-aware micro-interactions.
+
+   Nothing here changes behaviour: all IDs, form fields, CSRF tokens and JS
+   hooks are untouched. This file only decides how it looks and feels.
+   ========================================================================== */
+
+/* --------------------------------------------------------------------------
+   1. Design tokens
+   -------------------------------------------------------------------------- */
+
+:root {
+  /* Canvas + surfaces (near-black with a faint green cast). */
+  --fl-bg: #05080a;
+  --fl-bg-2: #070c0e;
+  --fl-surface: rgba(19, 28, 25, 0.72);
+  --fl-surface-solid: #101715;
+  --fl-surface-2: #0b110f;
+  --fl-elevated: rgba(28, 40, 35, 0.72);
+
+  /* Text.
+   *
+   * --fl-faint was #6a7d76, which cleared WCAG AA only against the bare page
+   * background — and it is almost never used there. On every card and panel the
+   * composite background lifts to ~#0f1514–#161c1c and it fell to 3.9–4.2:1.
+   * #7d8f88 holds at least 5:1 on all of them while staying clearly quieter
+   * than --fl-muted. */
+  --fl-text: #ecf5f0;
+  --fl-muted: #9db0a8;
+  --fl-faint: #7d8f88;
+
+  /* Brand: emerald → lime aurora. Green stays the brand colour. */
+  --fl-accent: #34d399;
+  --fl-accent-strong: #22c55e;
+  --fl-lime: #bef264;
+  --fl-grad-1: #059669;
+  --fl-grad-2: #22c55e;
+  --fl-grad-3: #a3e635;
+  --fl-gradient: linear-gradient(120deg, var(--fl-grad-1) 0%, var(--fl-grad-2) 45%, var(--fl-grad-3) 100%);
+  --fl-gradient-soft: linear-gradient(120deg, rgba(5,150,105,0.18), rgba(163,230,53,0.14));
+
+  /* Feedback. */
+  --fl-danger: #fb7185;
+  --fl-warning: #fbbf24;
+  --fl-info: #38bdf8;
+
+  /* Lines. */
+  --fl-border: rgba(190, 242, 172, 0.10);
+  --fl-border-strong: rgba(190, 242, 172, 0.20);
+
+  /* Glow. */
+  --fl-glow: rgba(34, 197, 94, 0.35);
+  --fl-glow-soft: rgba(34, 197, 94, 0.18);
+
+  /* Shadows. */
+  --fl-shadow: 0 22px 48px -28px rgba(0, 0, 0, 0.9), 0 2px 6px -2px rgba(0, 0, 0, 0.5);
+  --fl-shadow-glow: 0 18px 46px -16px var(--fl-glow);
+
+  /* Radii. */
+  --fl-r-sm: 0.65rem;
+  --fl-r: 1rem;
+  --fl-r-lg: 1.35rem;
+  --fl-r-xl: 1.85rem;
+
+  /* Type. */
+  --fl-font-display: "Sora", ui-sans-serif, system-ui, -apple-system, sans-serif;
+  --fl-font-body: "Plus Jakarta Sans", ui-sans-serif, system-ui, -apple-system, sans-serif;
+
+  /* Height of the mobile tab bar, plus the phone's home-bar inset. */
+  --fl-tabbar-height: 4.25rem;
+
+  --fl-ease: cubic-bezier(0.22, 1, 0.36, 1);
+  --fl-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+/* --------------------------------------------------------------------------
+   2. Base
+   -------------------------------------------------------------------------- */
+
+html {
+  -webkit-text-size-adjust: 100%;
+  scroll-behavior: smooth;
+}
+
+.fl-body {
+  background-color: var(--fl-bg);
+  color: var(--fl-text);
+  font-family: var(--fl-font-body);
+  font-feature-settings: "ss01" on;
+  letter-spacing: -0.006em;
+  min-height: 100dvh;
+  position: relative;
+  overflow-x: hidden;
+  /* Content must clear the fixed bottom tab bar on mobile. */
+  padding-bottom: calc(var(--fl-tabbar-height) + env(safe-area-inset-bottom, 0px));
+}
+
+@media (min-width: 768px) {
+  .fl-body {
+    padding-bottom: 2rem; /* no tab bar on desktop */
+  }
+}
+
+/* Aurora backdrop: fixed, behind everything, non-interactive. Two green glows
+   drifting over near-black, plus a faint grid. Gives the "premium" depth. */
+.fl-body::before {
+  content: "";
+  position: fixed;
+  inset: -20vh -10vw;
+  z-index: -2;
+  background:
+    radial-gradient(42vw 42vw at 82% -6%, rgba(34, 197, 94, 0.22), transparent 60%),
+    radial-gradient(48vw 48vw at 8% 8%, rgba(16, 185, 129, 0.16), transparent 62%),
+    radial-gradient(60vw 50vw at 50% 120%, rgba(163, 230, 53, 0.10), transparent 60%);
+  filter: saturate(115%);
+  /* Static gradient — the same premium look without a full-screen animation
+     repainting the GPU forever, which made scrolling and tab-switches sluggish. */
+}
+
+.fl-body::after {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: -2;
+  background-image:
+    linear-gradient(rgba(190, 242, 172, 0.03) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(190, 242, 172, 0.03) 1px, transparent 1px);
+  background-size: 46px 46px;
+  mask-image: radial-gradient(120% 90% at 50% 0%, #000 20%, transparent 78%);
+  -webkit-mask-image: radial-gradient(120% 90% at 50% 0%, #000 20%, transparent 78%);
+  pointer-events: none;
+}
+
+@keyframes fl-aurora {
+  0%   { transform: translate3d(0, 0, 0) scale(1); }
+  100% { transform: translate3d(-3%, 2%, 0) scale(1.08); }
+}
+
+.fl-main {
+  max-width: 680px; /* app-like: stays focused even on a big screen */
+  position: relative;
+  z-index: 1;
+}
+
+/* Headings use the display face. */
+h1, h2, h3, h4, h5, h6,
+.h1, .h2, .h3, .h4, .h5, .h6 {
+  font-family: var(--fl-font-display);
+  letter-spacing: -0.02em;
+  color: var(--fl-text);
+}
+
+a {
+  color: var(--fl-accent);
+  text-decoration-color: rgba(52, 211, 153, 0.4);
+  text-underline-offset: 2px;
+  transition: color 0.18s var(--fl-ease);
+}
+a:hover { color: var(--fl-lime); }
+
+/* Tabular figures everywhere numbers matter — no jitter as values change. */
+.fl-stat-value, .fl-cal-value, .fl-macro-value, .fl-prev-set, .fl-today-set,
+.fl-num, dd, .fl-food-table td {
+  font-variant-numeric: tabular-nums;
+}
+
+::selection { background: rgba(163, 230, 53, 0.3); color: #fff; }
+
+/* --------------------------------------------------------------------------
+   3. Color / type utility overrides (keep Bootstrap class names, restyle)
+   -------------------------------------------------------------------------- */
+
+.text-secondary { color: var(--fl-muted) !important; }
+.text-success { color: var(--fl-accent) !important; }
+.text-warning { color: var(--fl-warning) !important; }
+.text-danger  { color: var(--fl-danger) !important; }
+.text-uppercase { letter-spacing: 0.08em; }
+
+.fl-phase-note {
+  color: var(--fl-faint);
+  font-size: 0.8rem;
+  line-height: 1.6;
+}
+
+/* A gradient "eyebrow" label used above section titles. */
+.fl-eyebrow {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-family: var(--fl-font-display);
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--fl-accent);
+}
+
+/* Gradient text, used for hero headlines and the brand. */
+.fl-gradient-text {
+  background: var(--fl-gradient);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  color: transparent;
+}
+
+/* --------------------------------------------------------------------------
+   4. Navbar
+   -------------------------------------------------------------------------- */
+
+.fl-navbar {
+  background: linear-gradient(180deg, rgba(7, 12, 10, 0.92), rgba(7, 12, 10, 0.62));
+  -webkit-backdrop-filter: blur(16px) saturate(140%);
+  backdrop-filter: blur(16px) saturate(140%);
+  border-bottom: 1px solid var(--fl-border);
+  padding-top: 0.55rem;
+  padding-bottom: 0.55rem;
+}
+
+.fl-navbar .container-fluid { max-width: 1100px; margin-inline: auto; }
+
+.navbar-brand.fw-bold {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.55rem;
+  font-family: var(--fl-font-display);
+  font-weight: 800;
+  font-size: 1.15rem;
+  letter-spacing: -0.03em;
+}
+
+.fl-brand-mark {
+  display: grid;
+  place-items: center;
+  width: 2rem;
+  height: 2rem;
+  border-radius: 0.6rem;
+  background: var(--fl-gradient);
+  box-shadow: 0 6px 18px -6px var(--fl-glow);
+  color: #04120b;
+  flex: 0 0 auto;
+}
+.fl-brand-mark svg { width: 1.15rem; height: 1.15rem; }
+.fl-brand-text { color: var(--fl-text); }
+
+/* Desktop nav links. */
+.fl-navlink {
+  --fl-navlink-fg: var(--fl-muted);
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.4rem 0.75rem;
+  border-radius: 0.7rem;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--fl-navlink-fg);
+  text-decoration: none;
+  border: 1px solid transparent;
+  transition: color 0.18s var(--fl-ease), background 0.18s var(--fl-ease), border-color 0.18s var(--fl-ease);
+}
+.fl-navlink svg { width: 1.05rem; height: 1.05rem; opacity: 0.9; }
+.fl-navlink:hover {
+  color: var(--fl-text);
+  background: rgba(190, 242, 172, 0.06);
+  border-color: var(--fl-border);
+}
+.fl-navlink.is-active {
+  color: #04120b;
+  background: var(--fl-gradient);
+  border-color: transparent;
+  box-shadow: 0 8px 20px -10px var(--fl-glow);
+}
+.fl-navlink.is-active svg { opacity: 1; }
+
+/* --------------------------------------------------------------------------
+   5. Bottom tab bar (mobile only)
+   -------------------------------------------------------------------------- */
+
+.fl-tabbar {
+  position: fixed;
+  bottom: 0; left: 0; right: 0;
+  z-index: 1030;
+  display: flex;
+  gap: 0.15rem;
+  padding: 0.4rem 0.5rem;
+  padding-bottom: calc(0.4rem + env(safe-area-inset-bottom, 0px));
+  background: linear-gradient(180deg, rgba(8, 13, 11, 0.72), rgba(6, 10, 9, 0.96));
+  -webkit-backdrop-filter: blur(20px) saturate(150%);
+  backdrop-filter: blur(20px) saturate(150%);
+  border-top: 1px solid var(--fl-border);
+}
+
+.fl-tab {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.2rem;
+  min-height: calc(var(--fl-tabbar-height) - 0.8rem);
+  padding: 0.35rem 0.25rem;
+  border-radius: 0.85rem;
+  color: var(--fl-faint);
+  text-decoration: none;
+  font-size: 0.66rem;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+  transition: color 0.2s var(--fl-ease), background 0.2s var(--fl-ease), transform 0.2s var(--fl-spring);
+}
+
+.fl-tab-icon {
+  display: grid;
+  place-items: center;
+  line-height: 0;
+}
+.fl-tab-icon svg { width: 1.45rem; height: 1.45rem; }
+.fl-tab-label { line-height: 1; }
+
+.fl-tab-active {
+  color: var(--fl-accent);
+  background: linear-gradient(180deg, rgba(34, 197, 94, 0.16), rgba(163, 230, 53, 0.06));
+}
+.fl-tab-active .fl-tab-icon { filter: drop-shadow(0 3px 8px var(--fl-glow)); }
+.fl-tab:active { transform: scale(0.94); }
+
+/* --------------------------------------------------------------------------
+   6. Cards + glass surfaces
+   -------------------------------------------------------------------------- */
+
+.fl-card {
+  position: relative;
+  background: var(--fl-surface);
+  border: 1px solid var(--fl-border);
+  border-radius: var(--fl-r-lg);
+  padding: 1.35rem;
+  box-shadow: var(--fl-shadow);
+  overflow: hidden;
+}
+
+/* A hairline gradient sheen along the top edge of every card. */
+.fl-card::before {
+  content: "";
+  position: absolute;
+  inset: 0 0 auto 0;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(190, 242, 172, 0.35), transparent);
+  opacity: 0.7;
+}
+
+.fl-card-active {
+  border-color: rgba(52, 211, 153, 0.45);
+  box-shadow: var(--fl-shadow), 0 0 0 1px rgba(52, 211, 153, 0.15), 0 20px 50px -22px var(--fl-glow);
+}
+.fl-card-active::before {
+  background: linear-gradient(90deg, transparent, var(--fl-accent), transparent);
+  opacity: 1;
+}
+
+/* Optional inner "sub-surface" used for formulas, notes, sub-panels. */
+.fl-inset {
+  background: var(--fl-surface-2);
+  border: 1px solid var(--fl-border);
+  border-radius: var(--fl-r);
+}
+
+/* Hero card: the greeting / feature block. */
+.fl-hero {
+  position: relative;
+  border-radius: var(--fl-r-xl);
+  padding: 1.6rem 1.5rem;
+  background:
+    radial-gradient(120% 130% at 100% 0%, rgba(34, 197, 94, 0.20), transparent 55%),
+    radial-gradient(120% 130% at 0% 100%, rgba(163, 230, 53, 0.12), transparent 55%),
+    var(--fl-surface);
+  border: 1px solid var(--fl-border-strong);
+  box-shadow: var(--fl-shadow-glow), var(--fl-shadow);
+  overflow: hidden;
+}
+.fl-hero::after {
+  content: "";
+  position: absolute;
+  top: -40%; right: -20%;
+  width: 60%; height: 160%;
+  background: radial-gradient(closest-side, rgba(163, 230, 53, 0.18), transparent);
+  filter: blur(10px);
+  pointer-events: none;
+}
+
+.fl-avatar {
+  display: grid;
+  place-items: center;
+  width: 3rem; height: 3rem;
+  border-radius: 1rem;
+  background: var(--fl-gradient);
+  color: #04120b;
+  font-family: var(--fl-font-display);
+  font-weight: 800;
+  font-size: 1.25rem;
+  box-shadow: 0 10px 24px -10px var(--fl-glow);
+  flex: 0 0 auto;
+}
+
+/* --------------------------------------------------------------------------
+   7. Buttons
+   -------------------------------------------------------------------------- */
+
+.btn {
+  --bs-btn-border-radius: 0.85rem;
+  font-family: var(--fl-font-display);
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  border-radius: 0.85rem;
+  transition: transform 0.16s var(--fl-spring), box-shadow 0.2s var(--fl-ease),
+    background 0.2s var(--fl-ease), border-color 0.2s var(--fl-ease), color 0.2s var(--fl-ease), opacity 0.2s var(--fl-ease);
+  will-change: transform;
+}
+.btn:active { transform: translateY(1px) scale(0.988); }
+.btn:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(34, 197, 94, 0.4);
+}
+
+/* Primary CTA — the emerald→lime gradient with glow. */
+.btn-success {
+  position: relative;
+  color: #04120b !important;
+  background: var(--fl-gradient);
+  background-size: 140% 140%;
+  border: none;
+  box-shadow: 0 12px 30px -12px var(--fl-glow), inset 0 1px 0 rgba(255, 255, 255, 0.25);
+}
+.btn-success:hover {
+  color: #04120b !important;
+  background: var(--fl-gradient);
+  background-size: 140% 140%;
+  background-position: 90% 50%;
+  box-shadow: 0 18px 40px -12px var(--fl-glow), inset 0 1px 0 rgba(255, 255, 255, 0.3);
+  transform: translateY(-1px);
+}
+.btn-success:active { color: #04120b !important; transform: translateY(0) scale(0.99); }
+.btn-success:disabled, .btn-success.disabled { opacity: 0.7; color: #04120b !important; }
+
+/* Secondary — glassy outline. */
+.btn-outline-light {
+  color: var(--fl-text);
+  background: rgba(190, 242, 172, 0.03);
+  border: 1px solid var(--fl-border-strong);
+  -webkit-backdrop-filter: blur(6px);
+  backdrop-filter: blur(6px);
+}
+.btn-outline-light:hover {
+  color: var(--fl-text);
+  background: rgba(190, 242, 172, 0.09);
+  border-color: rgba(190, 242, 172, 0.32);
+  transform: translateY(-1px);
+}
+.btn-outline-light:active { color: var(--fl-text); }
+
+.btn-outline-danger {
+  color: var(--fl-danger);
+  border: 1px solid rgba(251, 113, 133, 0.4);
+  background: rgba(251, 113, 133, 0.04);
+}
+.btn-outline-danger:hover {
+  color: #fff;
+  background: rgba(244, 63, 94, 0.9);
+  border-color: transparent;
+}
+
+.btn-link {
+  color: var(--fl-muted);
+  text-decoration: none;
+  font-weight: 500;
+}
+.btn-link:hover { color: var(--fl-text); text-decoration: none; }
+
+.btn-sm { --bs-btn-border-radius: 0.65rem; border-radius: 0.65rem; padding: 0.35rem 0.7rem; }
+
+/* Large tap targets — the active workout screen is used mid-set, one-handed. */
+.fl-btn-lg {
+  min-height: 3.25rem;
+  font-size: 1.05rem;
+  border-radius: 1rem;
+}
+/* The single most-tapped control in the app: Save set. */
+.fl-btn-xl {
+  min-height: 3.75rem;
+  font-size: 1.18rem;
+  font-weight: 700;
+  border-radius: 1.1rem;
+  letter-spacing: 0.01em;
+}
+
+/* A play triangle used inside "Start workout". */
+.fl-btn-icon { display: inline-flex; align-items: center; justify-content: center; gap: 0.6rem; }
+.fl-btn-icon svg { width: 1.15rem; height: 1.15rem; }
+
+/* --------------------------------------------------------------------------
+   8. Forms
+   -------------------------------------------------------------------------- */
+
+.form-label {
+  font-family: var(--fl-font-display);
+  font-weight: 600;
+  font-size: 0.85rem;
+  color: var(--fl-muted);
+  margin-bottom: 0.45rem;
+  letter-spacing: 0.01em;
+}
+
+.form-control,
+.form-select {
+  background-color: var(--fl-surface-2);
+  border: 1px solid var(--fl-border-strong);
+  border-radius: 0.85rem;
+  color: var(--fl-text);
+  padding: 0.7rem 0.9rem;
+  transition: border-color 0.18s var(--fl-ease), box-shadow 0.18s var(--fl-ease), background 0.18s var(--fl-ease);
+}
+.form-control-lg, .form-select-lg {
+  min-height: 3.1rem;
+  border-radius: 0.95rem;
+  font-size: 1rem;
+}
+.form-control:focus,
+.form-select:focus {
+  background-color: var(--fl-surface-2);
+  color: var(--fl-text);
+  border-color: var(--fl-accent);
+  box-shadow: 0 0 0 3px rgba(34, 197, 94, 0.22);
+}
+.form-control::placeholder { color: var(--fl-faint); }
+.form-select {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='none' stroke='%2334d399' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m4 6 4 4 4-4'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 0.85rem center;
+  background-size: 1rem;
+}
+.form-select option { background-color: #0b110f; color: var(--fl-text); }
+optgroup { color: var(--fl-faint); font-style: normal; }
+
+.form-text { color: var(--fl-faint) !important; font-size: 0.8rem; }
+
+/* Invalid state. */
+.is-invalid { border-color: rgba(251, 113, 133, 0.7) !important; }
+.invalid-feedback { color: var(--fl-danger); font-size: 0.82rem; }
+
+/* Radio group (calorie calculator's sex field uses RadioSelect).
+   Robust to Django rendering each option as a <div> or <li> wrapper. */
+input[type="radio"], input[type="checkbox"] { accent-color: var(--fl-accent-strong); width: 1.05rem; height: 1.05rem; }
+#id_sex {
+  list-style: none;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.6rem;
+  padding: 0;
+  margin: 0;
+}
+#id_sex > div,
+#id_sex > li {
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+  padding: 0.65rem 1.05rem;
+  border: 1px solid var(--fl-border-strong);
+  border-radius: 0.85rem;
+  cursor: pointer;
+  background: var(--fl-surface-2);
+  transition: border-color 0.18s var(--fl-ease), background 0.18s var(--fl-ease);
+}
+#id_sex > div:hover,
+#id_sex > li:hover { border-color: rgba(190, 242, 172, 0.35); }
+#id_sex label { margin: 0; cursor: pointer; }
+
+/* iOS zooms the page in when a focused input is under 16px. Never let that
+   happen: it breaks the layout mid-workout. */
+input, select, textarea { font-size: max(16px, 1rem); }
+
+/* Hide native number spinners: a stray click or wheel-scroll silently changes
+   the value. Weight/reps/age are typed; the workout screen has its own +/-. */
+input[type="number"]::-webkit-outer-spin-button,
+input[type="number"]::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+input[type="number"] { -moz-appearance: textfield; appearance: textfield; }
+
+/* --------------------------------------------------------------------------
+   9. Weight / rep steppers
+   -------------------------------------------------------------------------- */
+
+.fl-stepper {
+  display: flex;
+  align-items: stretch;
+  gap: 0.6rem;
+}
+.fl-stepper input[type="number"] {
+  flex: 1;
+  min-width: 0;
+  text-align: center;
+  font-family: var(--fl-font-display);
+  font-size: 1.6rem;
+  font-weight: 700;
+  min-height: 3.75rem;
+  border-radius: 1rem;
+  background: var(--fl-surface-2);
+}
+.fl-step-btn {
+  flex: 0 0 3.75rem;
+  min-height: 3.75rem;
+  font-size: 1.6rem;
+  line-height: 1;
+  color: var(--fl-text);
+  background: rgba(190, 242, 172, 0.05);
+  border: 1px solid var(--fl-border-strong);
+  border-radius: 1rem;
+  transition: transform 0.14s var(--fl-spring), background 0.14s var(--fl-ease), color 0.14s var(--fl-ease);
+}
+.fl-step-btn:active {
+  background: var(--fl-gradient);
+  color: #04120b;
+  transform: scale(0.93);
+}
+
+/* Set rows: label left, numbers right, scannable at a glance. */
+.fl-prev-set,
+.fl-today-set {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 1rem;
+  padding: 0.6rem 0;
+  border-bottom: 1px solid var(--fl-border);
+}
+.fl-prev-set:last-child,
+.fl-today-set:last-child { border-bottom: none; }
+
+.fl-today-set {
+  font-size: 1.05rem;
+  padding: 0.7rem 0.85rem;
+  margin-bottom: 0.4rem;
+  border: 1px solid var(--fl-border);
+  border-radius: 0.8rem;
+  background: var(--fl-surface-2);
+}
+.fl-today-set:last-child { margin-bottom: 0; }
+
+/* A little "set N" chip. */
+.fl-set-badge {
+  display: inline-grid;
+  place-items: center;
+  min-width: 1.75rem;
+  height: 1.75rem;
+  padding: 0 0.5rem;
+  border-radius: 0.55rem;
+  font-family: var(--fl-font-display);
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: var(--fl-accent);
+  background: rgba(34, 197, 94, 0.12);
+}
+
+/* --------------------------------------------------------------------------
+   10. AI plan
+   -------------------------------------------------------------------------- */
+
+.fl-plan-exercise {
+  padding: 0.85rem 0;
+  border-bottom: 1px solid var(--fl-border);
+}
+.fl-plan-exercise:last-child { border-bottom: none; }
+
+.fl-day-badge {
+  display: inline-grid;
+  place-items: center;
+  width: 2.4rem; height: 2.4rem;
+  border-radius: 0.8rem;
+  font-family: var(--fl-font-display);
+  font-weight: 800;
+  color: #04120b;
+  background: var(--fl-gradient);
+  box-shadow: 0 8px 20px -10px var(--fl-glow);
+  flex: 0 0 auto;
+}
+
+.fl-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.28rem 0.7rem;
+  border-radius: 999px;
+  font-family: var(--fl-font-display);
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+.fl-badge-active { color: #04120b; background: var(--fl-gradient); }
+.fl-badge-muted { color: var(--fl-warning); background: rgba(251, 191, 36, 0.14); }
+.fl-badge-dot::before {
+  content: ""; width: 0.45rem; height: 0.45rem; border-radius: 50%;
+  background: currentColor;
+}
+
+/* --------------------------------------------------------------------------
+   11. Analytics: stat cards
+   -------------------------------------------------------------------------- */
+
+.fl-stat {
+  position: relative;
+  background: var(--fl-surface-2);
+  border: 1px solid var(--fl-border);
+  border-radius: var(--fl-r);
+  padding: 0.9rem 1rem;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+  overflow: hidden;
+  transition: border-color 0.2s var(--fl-ease), transform 0.2s var(--fl-ease);
+}
+.fl-stat:hover { border-color: var(--fl-border-strong); }
+.fl-stat-value {
+  font-family: var(--fl-font-display);
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: var(--fl-text);
+  line-height: 1.15;
+}
+.fl-stat-label {
+  font-size: 0.74rem;
+  color: var(--fl-muted);
+  line-height: 1.35;
+}
+.fl-stat-hero .fl-stat-value {
+  font-size: 1.9rem;
+  background: var(--fl-gradient);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.fl-chart {
+  min-height: 240px;
+  overflow-x: auto;
+}
+
+/* Scroll viewport for a chart sized larger than its card — the growth chart
+   gives every user its own spaced gridline, so it can outgrow the card in
+   both directions and scroll rather than cram. */
+.fl-chart-scroll {
+  max-height: 420px;
+  overflow: auto;
+  border-radius: 8px;
+}
+
+/* --------------------------------------------------------------------------
+   12. History
+   -------------------------------------------------------------------------- */
+
+.fl-history-exercise + .fl-history-exercise {
+  margin-top: 1rem;
+  padding-top: 1rem;
+  border-top: 1px solid var(--fl-border);
+}
+
+.fl-note {
+  background: var(--fl-surface-2);
+  border: 1px solid var(--fl-border);
+  border-left: 3px solid var(--fl-accent);
+  border-radius: 0.7rem;
+  padding: 0.75rem 0.95rem;
+}
+
+/* --------------------------------------------------------------------------
+   13. Calories + nutrition
+   -------------------------------------------------------------------------- */
+
+.fl-cal-goal {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 1rem;
+  padding: 0.8rem 0;
+  border-bottom: 1px solid var(--fl-border);
+}
+.fl-cal-goal:last-child { border-bottom: none; }
+.fl-cal-value {
+  font-family: var(--fl-font-display);
+  font-size: 1.5rem;
+  font-weight: 700;
+  display: block;
+  line-height: 1.1;
+}
+
+.fl-macro-value {
+  font-family: var(--fl-font-display);
+  font-size: 1.6rem;
+  font-weight: 800;
+  background: var(--fl-gradient);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.fl-formula {
+  background: var(--fl-surface-2);
+  border: 1px solid var(--fl-border);
+  border-radius: 0.7rem;
+  padding: 0.75rem 0.95rem;
+  font-size: 0.88rem;
+  color: var(--fl-muted);
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+.fl-formula strong { color: var(--fl-text); }
+
+/* A slim macro proportion bar. */
+.fl-macro-bar {
+  height: 0.5rem;
+  border-radius: 999px;
+  background: var(--fl-surface-2);
+  overflow: hidden;
+  border: 1px solid var(--fl-border);
+}
+.fl-macro-bar > span {
+  display: block;
+  height: 100%;
+  border-radius: 999px;
+  background: var(--fl-gradient);
+}
+
+/* Stacked protein / carbs / fat proportion bar (nutrition page). */
+.fl-macro-split {
+  display: flex;
+  height: 0.75rem;
+  border-radius: 999px;
+  overflow: hidden;
+  border: 1px solid var(--fl-border);
+  background: var(--fl-surface-2);
+}
+.fl-macro-split > span { display: block; height: 100%; }
+.fl-seg-p { background: linear-gradient(90deg, #059669, #22c55e); }
+.fl-seg-c { background: linear-gradient(90deg, #84cc16, #bef264); }
+.fl-seg-f { background: linear-gradient(90deg, #0ea5a4, #2dd4bf); }
+.fl-legend {
+  display: flex;
+  gap: 1.1rem;
+  flex-wrap: wrap;
+  font-size: 0.78rem;
+  color: var(--fl-muted);
+}
+.fl-legend span { display: inline-flex; align-items: center; }
+.fl-legend i {
+  width: 0.65rem; height: 0.65rem;
+  border-radius: 3px;
+  display: inline-block;
+  margin-right: 0.4rem;
+}
+
+/* Food-source tables: readable and scrollable on a phone. */
+.fl-food-table {
+  --bs-table-bg: transparent;
+  --bs-table-color: var(--fl-text);
+  --bs-table-border-color: var(--fl-border);
+  font-size: 0.86rem;
+  white-space: nowrap;
+  margin-bottom: 0;
+}
+.fl-food-table th {
+  color: var(--fl-muted);
+  font-weight: 700;
+  font-family: var(--fl-font-display);
+  border-bottom-color: var(--fl-border-strong);
+}
+.fl-food-table td { border-color: var(--fl-border); color: var(--fl-text); }
+.fl-food-table tbody tr:hover td { background: rgba(190, 242, 172, 0.03); }
+/* Protein-density stars, in the last column of the protein tables. */
+.fl-has-density td:last-child { color: var(--fl-lime); letter-spacing: 1px; }
+
+/* Plan editor: subtle divider between exercise rows. */
+.fl-ex-divider {
+  border-color: var(--fl-border);
+  opacity: 1;
+  margin: 0.9rem 0;
+}
+.fl-edit-ex:last-child .fl-ex-divider { display: none; }
+
+/* "This session so far": one block per exercise already logged. */
+.fl-session-ex + .fl-session-ex {
+  margin-top: 0.9rem;
+  padding-top: 0.9rem;
+  border-top: 1px solid var(--fl-border);
+}
+
+/* --------------------------------------------------------------------------
+   14. Alerts
+   -------------------------------------------------------------------------- */
+
+.alert {
+  border-radius: var(--fl-r);
+  border: 1px solid var(--fl-border);
+  background: var(--fl-surface-2);
+  color: var(--fl-text);
+  padding: 0.9rem 1.1rem;
+}
+.alert-danger { border-color: rgba(251, 113, 133, 0.35); background: rgba(251, 113, 133, 0.08); color: #ffd7de; }
+.alert-warning { border-color: rgba(251, 191, 36, 0.32); background: rgba(251, 191, 36, 0.08); color: #ffe9b8; }
+.alert-success { border-color: rgba(52, 211, 153, 0.35); background: rgba(52, 211, 153, 0.08); color: #c9f7e3; }
+.alert-secondary, .alert-info { border-color: var(--fl-border-strong); background: var(--fl-surface-2); color: var(--fl-muted); }
+
+/* Definition lists (plan settings). */
+dl.row dt { color: var(--fl-muted); font-weight: 500; }
+dl.row dd { color: var(--fl-text); font-weight: 600; font-family: var(--fl-font-display); }
+
+/* --------------------------------------------------------------------------
+   15. Micro-interactions + reveal animations (progressive enhancement)
+   -------------------------------------------------------------------------- */
+
+/* Cards / tiles lift slightly on hover (desktop pointers only). */
+@media (hover: hover) and (pointer: fine) {
+  .fl-lift { transition: transform 0.22s var(--fl-ease), box-shadow 0.22s var(--fl-ease), border-color 0.22s var(--fl-ease); }
+  .fl-lift:hover {
+    transform: translateY(-3px);
+    border-color: var(--fl-border-strong);
+    box-shadow: var(--fl-shadow-glow), var(--fl-shadow);
+  }
+}
+
+/* Reveal-on-scroll. Default = fully visible (works with no JS / reduced
+   motion). Only when JS confirms motion is welcome does it start hidden. */
+.anim-ready .reveal {
+  opacity: 0;
+  transform: translateY(18px);
+  transition: opacity 0.6s var(--fl-ease), transform 0.6s var(--fl-ease);
+  transition-delay: calc(var(--fl-i, 0) * 70ms);
+  will-change: opacity, transform;
+}
+.anim-ready .reveal.in { opacity: 1; transform: none; }
+
+/* Page-load intro for the top of a page. */
+.anim-ready .fl-enter {
+  animation: fl-enter 0.6s var(--fl-ease) both;
+}
+@keyframes fl-enter {
+  from { opacity: 0; transform: translateY(14px); }
+  to { opacity: 1; transform: none; }
+}
+
+/* Subtle pulsing ring for the primary "Start workout" CTA. */
+.fl-pulse { position: relative; }
+.anim-ready .fl-pulse::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  box-shadow: 0 0 0 0 var(--fl-glow-soft);
+  animation: fl-pulse 2.8s var(--fl-ease) infinite;
+  pointer-events: none;
+}
+@keyframes fl-pulse {
+  0% { box-shadow: 0 0 0 0 rgba(34, 197, 94, 0.35); }
+  70% { box-shadow: 0 0 0 14px rgba(34, 197, 94, 0); }
+  100% { box-shadow: 0 0 0 0 rgba(34, 197, 94, 0); }
+}
+
+/* Shimmer sweep for freshly-generated / celebratory moments. */
+.fl-shimmer {
+  background: linear-gradient(100deg, transparent 20%, rgba(190, 242, 172, 0.12) 50%, transparent 80%);
+  background-size: 200% 100%;
+  animation: fl-shimmer 2.2s linear infinite;
+}
+@keyframes fl-shimmer { to { background-position: -200% 0; } }
+
+/* Spinner used on async buttons (plan generation). */
+.fl-spin {
+  display: inline-block;
+  width: 1.05rem; height: 1.05rem;
+  border: 2px solid rgba(4, 18, 11, 0.35);
+  border-top-color: #04120b;
+  border-radius: 50%;
+  animation: fl-spin 0.7s linear infinite;
+  vertical-align: -0.15rem;
+  margin-right: 0.45rem;
+}
+@keyframes fl-spin { to { transform: rotate(360deg); } }
+
+/* Empty-state illustration circle. */
+.fl-empty-icon {
+  display: grid;
+  place-items: center;
+  width: 3.5rem; height: 3.5rem;
+  margin: 0 auto 0.85rem;
+  border-radius: 1.1rem;
+  color: var(--fl-accent);
+  background: rgba(34, 197, 94, 0.1);
+  border: 1px solid var(--fl-border-strong);
+}
+.fl-empty-icon svg { width: 1.6rem; height: 1.6rem; }
+
+/* A quick-action tile with an icon (home shortcuts). */
+.fl-tile {
+  display: flex;
+  align-items: center;
+  gap: 0.9rem;
+  width: 100%;
+  padding: 1rem 1.1rem;
+  border-radius: var(--fl-r);
+  border: 1px solid var(--fl-border);
+  background: var(--fl-surface);
+  color: var(--fl-text);
+  text-decoration: none;
+  text-align: left;
+  box-shadow: var(--fl-shadow);
+}
+.fl-tile-icon {
+  display: grid;
+  place-items: center;
+  width: 2.6rem; height: 2.6rem;
+  border-radius: 0.8rem;
+  color: var(--fl-accent);
+  background: rgba(34, 197, 94, 0.1);
+  border: 1px solid var(--fl-border);
+  flex: 0 0 auto;
+}
+.fl-tile-icon svg { width: 1.3rem; height: 1.3rem; }
+.fl-tile-body { min-width: 0; flex: 1; }
+.fl-tile-title { font-family: var(--fl-font-display); font-weight: 700; font-size: 0.98rem; line-height: 1.2; }
+.fl-tile-sub { color: var(--fl-muted); font-size: 0.8rem; line-height: 1.3; }
+.fl-tile-arrow { color: var(--fl-faint); flex: 0 0 auto; transition: transform 0.2s var(--fl-ease), color 0.2s var(--fl-ease); }
+.fl-tile:hover .fl-tile-arrow { transform: translateX(3px); color: var(--fl-accent); }
+.fl-tile svg { display: block; }
+
+/* Section header with an icon. */
+.fl-section-head {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  margin-bottom: 0.9rem;
+}
+.fl-section-head svg { width: 1.1rem; height: 1.1rem; color: var(--fl-accent); flex: 0 0 auto; }
+
+/* --------------------------------------------------------------------------
+   16. Reduced motion — respect the user's choice fully.
+   -------------------------------------------------------------------------- */
+
+@media (prefers-reduced-motion: reduce) {
+  html { scroll-behavior: auto; }
+  *, *::before, *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+  }
+  .fl-body::before { animation: none; }
+  .anim-ready .reveal { opacity: 1 !important; transform: none !important; }
+}
+
+/* --------------------------------------------------------------------------
+   17. Responsive polish
+   -------------------------------------------------------------------------- */
+
+@media (min-width: 768px) {
+  .fl-main { padding-top: 0.5rem; }
+  .fl-hero { padding: 2rem 1.9rem; }
+}
+
+@media (max-width: 380px) {
+  .fl-card { padding: 1.1rem; }
+  .fl-stat-value { font-size: 1.35rem; }
+}
+
+/* --------------------------------------------------------------------------
+   18. Loading — skeletons & navigation progress
+
+   Django renders every page on the server, so there is no blank-screen phase to
+   paper over on a normal page load. Skeletons are therefore used where the wait
+   is genuinely asynchronous and the layout really is empty until it resolves:
+
+     * Plotly charts   — the library is fetched from a CDN and draws client-side
+     * AI plan builds  — a real round-trip to the model provider
+
+   Everything else gets the progress bar instead, which acknowledges the click
+   without pretending the page is emptier than it is.
+   -------------------------------------------------------------------------- */
+
+.fl-skeleton {
+  position: relative;
+  overflow: hidden;
+  background: rgba(190, 242, 172, 0.05);
+  border-radius: var(--fl-r-sm);
+  color: transparent; /* never let placeholder text be read aloud */
+  user-select: none;
+}
+
+.fl-skeleton::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  transform: translateX(-100%);
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgba(190, 242, 172, 0.09),
+    transparent
+  );
+  animation: fl-shimmer-sweep 1.4s var(--fl-ease) infinite;
+}
+
+@keyframes fl-shimmer-sweep {
+  to { transform: translateX(100%); }
+}
+
+.fl-skeleton-text {
+  height: 0.7rem;
+  margin-bottom: 0.5rem;
+  border-radius: 999px;
+}
+
+.fl-skeleton-text:last-child { margin-bottom: 0; }
+.fl-skeleton-w-40 { width: 40%; }
+.fl-skeleton-w-60 { width: 60%; }
+.fl-skeleton-w-80 { width: 80%; }
+
+/* Chart placeholder: mimics the real thing — plot area, bars, axis line — so
+   the page does not reflow when Plotly swaps in. The height matches the 240px
+   set in charts.js / wellness.js, so nothing jumps on arrival. */
+.fl-chart-skeleton {
+  height: 240px;
+  padding: 0.85rem 0.5rem 0;
+  display: flex;
+  align-items: flex-end;
+  gap: 0.55rem;
+  border-bottom: 1px solid var(--fl-border);
+}
+
+.fl-chart-skeleton > span {
+  flex: 1;
+  border-radius: 0.3rem 0.3rem 0 0;
+  background: rgba(190, 242, 172, 0.06);
+  animation: fl-skel-breathe 1.8s var(--fl-ease) infinite;
+}
+
+.fl-chart-skeleton > span:nth-child(1) { height: 45%; animation-delay: 0s; }
+.fl-chart-skeleton > span:nth-child(2) { height: 68%; animation-delay: .1s; }
+.fl-chart-skeleton > span:nth-child(3) { height: 52%; animation-delay: .2s; }
+.fl-chart-skeleton > span:nth-child(4) { height: 80%; animation-delay: .3s; }
+.fl-chart-skeleton > span:nth-child(5) { height: 62%; animation-delay: .4s; }
+.fl-chart-skeleton > span:nth-child(6) { height: 90%; animation-delay: .5s; }
+.fl-chart-skeleton > span:nth-child(7) { height: 74%; animation-delay: .6s; }
+.fl-chart-skeleton > span:nth-child(8) { height: 96%; animation-delay: .7s; }
+
+@keyframes fl-skel-breathe {
+  0%, 100% { opacity: .45; }
+  50% { opacity: 1; }
+}
+
+/* Plan-generation skeleton — shaped like a real plan day. */
+.fl-plan-skeleton {
+  display: grid;
+  gap: 0.75rem;
+}
+
+.fl-plan-skeleton-day {
+  padding: 1rem;
+  border: 1px solid var(--fl-border);
+  border-radius: var(--fl-r);
+  background: var(--fl-surface);
+}
+
+/* --- Navigation progress bar --------------------------------------------- */
+
+.fl-navbar-progress {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 2px;
+  z-index: 2000;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.25s var(--fl-ease);
+}
+
+.fl-navbar-progress.is-active { opacity: 1; }
+
+.fl-navbar-progress > span {
+  display: block;
+  height: 100%;
+  width: var(--fl-progress, 0%);
+  background: var(--fl-gradient);
+  box-shadow: 0 0 12px var(--fl-glow);
+  transition: width 0.25s var(--fl-ease);
+}
+
+.fl-navbar-progress[data-reduced="true"] > span { transition: none; }
+
+/* --- Busy submit buttons -------------------------------------------------- */
+
+/* Applied by nav.js on submit. The button is never disabled — a disabled
+   submitter is dropped from the POST body, which would break formaction-based
+   forms such as finish-workout vs save-note. */
+.btn.is-busy {
+  position: relative;
+  pointer-events: none;
+  color: transparent !important;
+}
+
+.btn.is-busy > * { opacity: 0; }
+
+.btn.is-busy::after {
+  content: "";
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 1.05rem;
+  height: 1.05rem;
+  margin: -0.525rem 0 0 -0.525rem;
+  border-radius: 50%;
+  border: 2px solid rgba(4, 18, 11, 0.35);
+  border-top-color: #04120b;
+  animation: fl-btn-spin 0.6s linear infinite;
+}
+
+.btn-outline-light.is-busy::after,
+.btn-outline-danger.is-busy::after {
+  border-color: rgba(236, 245, 240, 0.3);
+  border-top-color: var(--fl-text);
+}
+
+@keyframes fl-btn-spin {
+  to { transform: rotate(360deg); }
+}
+
+/* --------------------------------------------------------------------------
+   19. Dashboard (home)
+   -------------------------------------------------------------------------- */
+
+.fl-dash-hero {
+  position: relative;
+  overflow: hidden;
+  padding: 1.5rem;
+  border-radius: var(--fl-r-xl);
+  border: 1px solid var(--fl-border);
+  background:
+    radial-gradient(120% 140% at 100% 0%, rgba(34, 197, 94, 0.14), transparent 58%),
+    linear-gradient(180deg, rgba(28, 40, 35, 0.7), rgba(11, 17, 15, 0.85));
+  box-shadow: var(--fl-shadow);
+}
+
+.fl-dash-grid {
+  display: grid;
+  gap: 1.25rem;
+  align-items: center;
+}
+
+@media (min-width: 640px) {
+  .fl-dash-grid { grid-template-columns: 1fr auto; }
+}
+
+/* Weekly progress ring — a conic gradient, so no chart library is needed. */
+.fl-ring {
+  --fl-ring-pct: 0;
+  position: relative;
+  width: 8.5rem;
+  height: 8.5rem;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  flex: none;
+  margin-inline: auto;
+  background: conic-gradient(
+    var(--fl-accent-strong) calc(var(--fl-ring-pct) * 1%),
+    rgba(190, 242, 172, 0.09) 0
+  );
+  transition: background 0.9s var(--fl-ease);
+}
+
+.fl-ring::before {
+  content: "";
+  position: absolute;
+  inset: 0.55rem;
+  border-radius: 50%;
+  background: var(--fl-surface-2);
+  border: 1px solid var(--fl-border);
+}
+
+.fl-ring-inner {
+  position: relative;
+  text-align: center;
+  line-height: 1.1;
+}
+
+.fl-ring-v {
+  display: block;
+  font-family: var(--fl-font-display);
+  font-weight: 800;
+  font-size: 1.7rem;
+  color: var(--fl-text);
+  font-variant-numeric: tabular-nums;
+}
+
+.fl-ring-k {
+  display: block;
+  font-size: 0.62rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--fl-faint);
+  font-weight: 600;
+  margin-top: 0.15rem;
+}
+
+.fl-dash-metrics {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 0.6rem;
+  margin-top: 1.15rem;
+}
+
+.fl-metric {
+  padding: 0.75rem 0.6rem;
+  border-radius: var(--fl-r-sm);
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid var(--fl-border);
+  text-align: center;
+}
+
+.fl-metric-v {
+  display: block;
+  font-family: var(--fl-font-display);
+  font-weight: 700;
+  font-size: 1.25rem;
+  color: var(--fl-lime);
+  font-variant-numeric: tabular-nums;
+  line-height: 1.15;
+}
+
+.fl-metric-k {
+  display: block;
+  font-size: 0.64rem;
+  color: var(--fl-faint);
+  margin-top: 0.2rem;
+  line-height: 1.3;
+}
+
+/* Recent session rows */
+.fl-recent {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.7rem 0.85rem;
+  border-radius: var(--fl-r-sm);
+  border: 1px solid var(--fl-border);
+  background: rgba(255, 255, 255, 0.02);
+  text-decoration: none;
+  color: var(--fl-text);
+  transition: border-color 0.25s var(--fl-ease), background 0.25s var(--fl-ease);
+}
+
+.fl-recent:hover {
+  border-color: var(--fl-border-strong);
+  background: rgba(255, 255, 255, 0.04);
+  color: var(--fl-text);
+}
+
+.fl-recent-icon {
+  flex: none;
+  width: 2.1rem;
+  height: 2.1rem;
+  display: grid;
+  place-items: center;
+  border-radius: 0.6rem;
+  background: rgba(34, 197, 94, 0.12);
+  color: var(--fl-accent);
+}
+
+.fl-recent-icon svg { width: 1rem; height: 1rem; }
+
+.fl-recent-name {
+  font-weight: 600;
+  font-size: 0.92rem;
+  display: block;
+}
+
+.fl-recent-meta {
+  font-size: 0.72rem;
+  color: var(--fl-faint);
+}
+
+/* A 2-up tile grid on wider screens — one column wastes desktop width. */
+@media (min-width: 768px) {
+  .fl-tile-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 0.6rem;
+  }
+  .fl-tile-grid .fl-tile { margin-bottom: 0 !important; }
+}
+
+/* --------------------------------------------------------------------------
+   20. Auth (login / register)
+   -------------------------------------------------------------------------- */
+
+.fl-auth {
+  display: grid;
+  gap: 0;
+  min-height: calc(100vh - 8rem);
+  align-items: center;
+}
+
+@media (min-width: 992px) {
+  .fl-auth {
+    grid-template-columns: 1fr 1fr;
+    gap: 3rem;
+  }
+}
+
+/* The pitch panel is decoration for the form; hidden on phones where the
+   keyboard already fills the screen. */
+.fl-auth-aside {
+  display: none;
+  position: relative;
+  padding: 2.5rem;
+  border-radius: var(--fl-r-xl);
+  border: 1px solid var(--fl-border);
+  overflow: hidden;
+  background:
+    radial-gradient(120% 120% at 0% 0%, rgba(34, 197, 94, 0.16), transparent 58%),
+    linear-gradient(180deg, rgba(28, 40, 35, 0.6), rgba(11, 17, 15, 0.9));
+}
+
+@media (min-width: 992px) {
+  .fl-auth-aside { display: block; }
+}
+
+.fl-auth-quote {
+  font-family: var(--fl-font-display);
+  font-size: 1.85rem;
+  font-weight: 700;
+  line-height: 1.22;
+  letter-spacing: -0.02em;
+  margin: 0 0 1.5rem;
+}
+
+.fl-auth-points {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: grid;
+  gap: 0.85rem;
+}
+
+.fl-auth-points li {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.6rem;
+  font-size: 0.92rem;
+  color: var(--fl-muted);
+  line-height: 1.5;
+}
+
+.fl-auth-points svg {
+  flex: none;
+  width: 1.05rem;
+  height: 1.05rem;
+  margin-top: 0.15rem;
+  color: var(--fl-accent);
+}
+
+.fl-auth-form { width: 100%; max-width: 26rem; margin-inline: auto; }
+
+@media (prefers-reduced-motion: reduce) {
+  .fl-skeleton::after,
+  .fl-chart-skeleton > span,
+  .btn.is-busy::after {
+    animation: none !important;
+  }
+  .fl-ring { transition: none; }
+}
+
+/* --------------------------------------------------------------------------
+   20. Joey — floating fitness assistant
+   -------------------------------------------------------------------------- */
+
+.fl-joey {
+  position: fixed;
+  right: 1rem;
+  bottom: calc(var(--fl-tabbar-height) + env(safe-area-inset-bottom, 0px) + 0.75rem);
+  z-index: 1080;
+  font-family: var(--fl-font-body);
+}
+
+@media (min-width: 768px) {
+  .fl-joey { right: 1.5rem; bottom: 1.5rem; }
+}
+
+/* Launcher — hint bubble + round button. */
+.fl-joey-launcher {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+}
+
+.fl-joey.is-open .fl-joey-launcher { display: none; }
+
+.fl-joey-hint {
+  background: var(--fl-surface-solid);
+  border: 1px solid var(--fl-border-strong);
+  color: var(--fl-text);
+  font-size: 0.85rem;
+  font-weight: 600;
+  padding: 0.5rem 0.8rem;
+  border-radius: 999px;
+  box-shadow: var(--fl-shadow);
+  white-space: nowrap;
+  animation: fl-joey-hint-in 0.4s var(--fl-spring) both;
+  transition: opacity 0.5s ease, transform 0.5s ease;
+}
+
+.fl-joey-hint.is-fading { opacity: 0; transform: translateX(8px); pointer-events: none; }
+
+@keyframes fl-joey-hint-in {
+  from { opacity: 0; transform: translateX(10px) scale(0.96); }
+  to   { opacity: 1; transform: none; }
+}
+
+.fl-joey-btn {
+  width: 3.5rem;
+  height: 3.5rem;
+  border-radius: 50%;
+  border: none;
+  background: var(--fl-gradient);
+  color: #04120b;
+  display: grid;
+  place-items: center;
+  box-shadow: var(--fl-shadow-glow);
+  cursor: pointer;
+  transition: transform 0.2s var(--fl-spring), box-shadow 0.2s var(--fl-ease);
+}
+
+.fl-joey-btn:hover { transform: translateY(-2px) scale(1.04); }
+.fl-joey-btn:active { transform: scale(0.96); }
+.fl-joey-btn svg { width: 1.6rem; height: 1.6rem; }
+
+/* Chat panel. */
+.fl-joey-panel {
+  position: fixed;
+  right: 1rem;
+  bottom: calc(var(--fl-tabbar-height) + env(safe-area-inset-bottom, 0px) + 0.75rem);
+  width: min(380px, calc(100vw - 2rem));
+  height: min(68vh, 560px);
+  display: flex;
+  flex-direction: column;
+  background: var(--fl-surface-solid);
+  border: 1px solid var(--fl-border-strong);
+  border-radius: var(--fl-r-lg);
+  box-shadow: var(--fl-shadow), var(--fl-shadow-glow);
+  overflow: hidden;
+  animation: fl-joey-panel-in 0.28s var(--fl-ease) both;
+}
+
+@media (min-width: 768px) {
+  .fl-joey-panel { right: 1.5rem; bottom: 1.5rem; height: min(70vh, 600px); }
+}
+
+@keyframes fl-joey-panel-in {
+  from { opacity: 0; transform: translateY(16px) scale(0.98); }
+  to   { opacity: 1; transform: none; }
+}
+
+.fl-joey-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  padding: 0.85rem 1rem;
+  background: linear-gradient(180deg, rgba(19, 28, 25, 0.9), rgba(11, 17, 15, 0.6));
+  border-bottom: 1px solid var(--fl-border);
+}
+
+.fl-joey-id { display: flex; align-items: center; gap: 0.65rem; }
+
+.fl-joey-avatar {
+  width: 2.25rem;
+  height: 2.25rem;
+  border-radius: 50%;
+  background: var(--fl-gradient);
+  color: #04120b;
+  display: grid;
+  place-items: center;
+  font-family: var(--fl-font-display);
+  font-weight: 800;
+  font-size: 1.1rem;
+}
+
+.fl-joey-name {
+  font-family: var(--fl-font-display);
+  font-weight: 700;
+  color: var(--fl-text);
+  line-height: 1.1;
+}
+
+.fl-joey-status { font-size: 0.72rem; color: var(--fl-accent); }
+
+.fl-joey-close {
+  background: transparent;
+  border: none;
+  color: var(--fl-muted);
+  cursor: pointer;
+  padding: 0.35rem;
+  border-radius: 0.5rem;
+  display: grid;
+  place-items: center;
+}
+.fl-joey-close:hover { color: var(--fl-text); background: rgba(190, 242, 172, 0.08); }
+.fl-joey-close svg { width: 1.2rem; height: 1.2rem; }
+
+/* Messages — smooth-scrolling column. */
+.fl-joey-messages {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  scroll-behavior: smooth;
+  padding: 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+}
+
+.fl-joey-msg { display: flex; }
+.fl-joey-msg-user { justify-content: flex-end; }
+.fl-joey-msg-assistant { justify-content: flex-start; }
+
+.fl-joey-bubble {
+  max-width: 82%;
+  padding: 0.6rem 0.85rem;
+  border-radius: 1rem;
+  font-size: 0.9rem;
+  line-height: 1.5;
+  white-space: pre-wrap;
+  word-wrap: break-word;
+}
+
+.fl-joey-msg-assistant .fl-joey-bubble {
+  background: var(--fl-surface-2);
+  border: 1px solid var(--fl-border);
+  color: var(--fl-text);
+  border-bottom-left-radius: 0.35rem;
+}
+
+.fl-joey-msg-user .fl-joey-bubble {
+  background: var(--fl-gradient);
+  color: #04120b;
+  font-weight: 500;
+  border-bottom-right-radius: 0.35rem;
+}
+
+/* Typing indicator. */
+.fl-joey-typing { display: flex; gap: 0.3rem; align-items: center; }
+.fl-joey-typing span {
+  width: 0.45rem;
+  height: 0.45rem;
+  border-radius: 50%;
+  background: var(--fl-muted);
+  animation: fl-joey-typing 1.2s infinite ease-in-out;
+}
+.fl-joey-typing span:nth-child(2) { animation-delay: 0.15s; }
+.fl-joey-typing span:nth-child(3) { animation-delay: 0.3s; }
+
+@keyframes fl-joey-typing {
+  0%, 60%, 100% { opacity: 0.3; transform: translateY(0); }
+  30% { opacity: 1; transform: translateY(-3px); }
+}
+
+/* Input row. */
+.fl-joey-input {
+  display: flex;
+  gap: 0.5rem;
+  padding: 0.75rem;
+  border-top: 1px solid var(--fl-border);
+  background: var(--fl-bg-2);
+}
+
+.fl-joey-field {
+  flex: 1;
+  min-width: 0;
+  background: var(--fl-surface-2);
+  border: 1px solid var(--fl-border);
+  border-radius: 999px;
+  padding: 0.6rem 0.95rem;
+  color: var(--fl-text);
+  font-size: 0.9rem;
+}
+.fl-joey-field:focus {
+  outline: none;
+  border-color: var(--fl-accent);
+  box-shadow: 0 0 0 3px var(--fl-glow-soft);
+}
+.fl-joey-field::placeholder { color: var(--fl-faint); }
+
+.fl-joey-send {
+  flex: none;
+  width: 2.6rem;
+  height: 2.6rem;
+  border-radius: 50%;
+  border: none;
+  background: var(--fl-gradient);
+  color: #04120b;
+  display: grid;
+  place-items: center;
+  cursor: pointer;
+  transition: transform 0.15s var(--fl-spring);
+}
+.fl-joey-send:hover { transform: scale(1.06); }
+.fl-joey-send:active { transform: scale(0.94); }
+.fl-joey-send svg { width: 1.15rem; height: 1.15rem; }
+
+@media (prefers-reduced-motion: reduce) {
+  .fl-joey-hint, .fl-joey-panel, .fl-joey-typing span { animation: none !important; }
+  .fl-joey-messages { scroll-behavior: auto; }
+}
+
+/* --------------------------------------------------------------------------
+   21. Login role toggle (Trainee / Admin)
+   -------------------------------------------------------------------------- */
+
+.fl-role-toggle {
+  display: flex;
+  gap: 0.35rem;
+  padding: 0.3rem;
+  background: var(--fl-surface-2);
+  border: 1px solid var(--fl-border);
+  border-radius: 999px;
+}
+
+.fl-role-tab {
+  flex: 1;
+  text-align: center;
+  padding: 0.5rem 0.75rem;
+  border-radius: 999px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--fl-muted);
+  text-decoration: none;
+  transition: color 0.18s var(--fl-ease), background 0.18s var(--fl-ease);
+}
+
+.fl-role-tab:hover { color: var(--fl-text); }
+
+.fl-role-tab.is-active {
+  background: var(--fl-gradient);
+  color: #04120b;
+}
+
+/* Admin dashboard quick-link icon. */
+.fl-quicklink-icon {
+  display: grid;
+  place-items: center;
+  width: 2.4rem;
+  height: 2.4rem;
+  border-radius: 0.75rem;
+  background: var(--fl-gradient-soft);
+  border: 1px solid var(--fl-border);
+  color: var(--fl-accent);
+}
+.fl-quicklink-icon svg { width: 1.3rem; height: 1.3rem; }
+
+/* --------------------------------------------------------------------------
+   22. Notifications — bell badge and list
+   -------------------------------------------------------------------------- */
+
+.fl-bell { position: relative; }
+
+.fl-bell-badge {
+  position: absolute;
+  top: -0.2rem;
+  right: -0.2rem;
+  min-width: 1.05rem;
+  height: 1.05rem;
+  padding: 0 0.28rem;
+  border-radius: 999px;
+  background: var(--fl-danger);
+  color: #04120b;
+  font-size: 0.68rem;
+  font-weight: 800;
+  line-height: 1.05rem;
+  text-align: center;
+}
+
+.fl-notif { transition: border-color 0.18s var(--fl-ease), background 0.18s var(--fl-ease); }
+.fl-notif:hover { border-color: var(--fl-border-strong); }
+
+.fl-notif-unread { border-left: 3px solid var(--fl-accent); }
+
+.fl-notif-dot {
+  flex: none;
+  width: 0.6rem;
+  height: 0.6rem;
+  border-radius: 50%;
+  background: var(--fl-accent);
+  margin-top: 0.35rem;
+  box-shadow: 0 0 0 4px var(--fl-glow-soft);
+}
+
+/* --------------------------------------------------------------------------
+   23. Messaging — Connect with Admin conversation
+   -------------------------------------------------------------------------- */
+
+.fl-chat {
+  display: flex;
+  flex-direction: column;
+  height: calc(100dvh - var(--fl-tabbar-height) - 8.5rem);
+  min-height: 24rem;
+  background: var(--fl-surface-solid);
+  border: 1px solid var(--fl-border-strong);
+  border-radius: var(--fl-r-lg);
+  overflow: hidden;
+}
+
+@media (min-width: 768px) {
+  .fl-chat { height: calc(100dvh - 11rem); }
+}
+
+.fl-chat-head {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.85rem 1rem;
+  border-bottom: 1px solid var(--fl-border);
+  background: linear-gradient(180deg, rgba(19, 28, 25, 0.9), rgba(11, 17, 15, 0.5));
+}
+
+.fl-chat-back {
+  color: var(--fl-muted);
+  display: grid;
+  place-items: center;
+  padding: 0.3rem;
+  border-radius: 0.5rem;
+}
+.fl-chat-back:hover { color: var(--fl-text); background: rgba(190, 242, 172, 0.08); }
+.fl-chat-back svg { width: 1.3rem; height: 1.3rem; }
+
+.fl-chat-body {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  scroll-behavior: smooth;
+  padding: 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+}
+
+/* Dated block separators ("Today", "Yesterday", "17 July 2026"). */
+.fl-chat-daysep {
+  text-align: center;
+  margin: 0.85rem 0 0.5rem;
+}
+.fl-chat-daysep span {
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--fl-faint);
+  background: var(--fl-surface-2);
+  border: 1px solid var(--fl-border);
+  border-radius: 999px;
+  padding: 0.2rem 0.7rem;
+}
+
+.fl-chat-block { display: flex; flex-direction: column; gap: 0.3rem; }
+
+.fl-chat-msg {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  max-width: 82%;
+}
+.fl-chat-msg.is-mine { align-self: flex-end; align-items: flex-end; }
+
+.fl-chat-bubble {
+  padding: 0.55rem 0.85rem;
+  border-radius: 1rem;
+  font-size: 0.9rem;
+  line-height: 1.5;
+  white-space: pre-wrap;
+  word-wrap: break-word;
+  background: var(--fl-surface-2);
+  border: 1px solid var(--fl-border);
+  color: var(--fl-text);
+  border-bottom-left-radius: 0.35rem;
+}
+.fl-chat-msg.is-mine .fl-chat-bubble {
+  background: var(--fl-gradient);
+  color: #04120b;
+  font-weight: 500;
+  border-bottom-left-radius: 1rem;
+  border-bottom-right-radius: 0.35rem;
+  border-color: transparent;
+}
+
+.fl-chat-time {
+  font-size: 0.68rem;
+  color: var(--fl-faint);
+  margin: 0.1rem 0.3rem 0;
+}
+
+.fl-chat-input {
+  display: flex;
+  gap: 0.5rem;
+  padding: 0.75rem;
+  border-top: 1px solid var(--fl-border);
+  background: var(--fl-bg-2);
+}
+
+.fl-chat-field {
+  flex: 1;
+  min-width: 0;
+  background: var(--fl-surface-2);
+  border: 1px solid var(--fl-border);
+  border-radius: 999px;
+  padding: 0.6rem 0.95rem;
+  color: var(--fl-text);
+  font-size: 0.9rem;
+}
+.fl-chat-field:focus {
+  outline: none;
+  border-color: var(--fl-accent);
+  box-shadow: 0 0 0 3px var(--fl-glow-soft);
+}
+.fl-chat-field::placeholder { color: var(--fl-faint); }
+
+.fl-chat-send {
+  flex: none;
+  width: 2.6rem;
+  height: 2.6rem;
+  border-radius: 50%;
+  border: none;
+  background: var(--fl-gradient);
+  color: #04120b;
+  display: grid;
+  place-items: center;
+  cursor: pointer;
+  transition: transform 0.15s var(--fl-spring);
+}
+.fl-chat-send:hover { transform: scale(1.06); }
+.fl-chat-send:active { transform: scale(0.94); }
+.fl-chat-send svg { width: 1.15rem; height: 1.15rem; }
+
+@media (prefers-reduced-motion: reduce) {
+  .fl-chat-body { scroll-behavior: auto; }
+}

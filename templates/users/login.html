@@ -1,0 +1,84 @@
+{% extends "base.html" %}
+
+{% block title %}Log in — Fit Logger{% endblock %}
+
+{% block content %}
+<div class="fl-auth">
+
+  {% comment %}
+    Pitch panel — desktop only. Purely decorative, so it carries no content
+    the form itself depends on.
+  {% endcomment %}
+  <aside class="fl-auth-aside fl-enter" aria-hidden="true">
+    <p class="fl-eyebrow mb-3">Fit Logger</p>
+    <p class="fl-auth-quote">
+      The set you log today is the <span class="fl-gradient-text">proof</span>
+      you'll want in six months.
+    </p>
+    <ul class="fl-auth-points">
+      <li>
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>
+        Your last session, waiting where you left it
+      </li>
+      <li>
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>
+        Strength trends and plateau alerts, kept up to date
+      </li>
+      <li>
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>
+        Your plan, your calories, your macros — all in one place
+      </li>
+    </ul>
+  </aside>
+
+  <div class="fl-auth-form fl-enter">
+
+    <div class="text-center mb-4 mt-2">
+      <span class="fl-avatar mx-auto mb-3" aria-hidden="true">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:1.5rem;height:1.5rem"><path d="M6.5 6.5v11M17.5 6.5v11M4 9v6M20 9v6M6.5 12h11"/></svg>
+      </span>
+      <h1 class="h3 mb-1">Welcome back</h1>
+      <p class="text-secondary mb-0">Pick up right where you left off.</p>
+    </div>
+
+    <div class="fl-card">
+      {# Trainee / Admin option. Works without JS — each tab reloads with ?as=. #}
+      <div class="fl-role-toggle mb-3" role="tablist" aria-label="Log in as">
+        <a href="?as=trainee" class="fl-role-tab {% if as_role != 'admin' %}is-active{% endif %}"
+           role="tab" aria-selected="{% if as_role != 'admin' %}true{% else %}false{% endif %}">Login as Trainee</a>
+        <a href="?as=admin" class="fl-role-tab {% if as_role == 'admin' %}is-active{% endif %}"
+           role="tab" aria-selected="{% if as_role == 'admin' %}true{% else %}false{% endif %}">Login as Admin</a>
+      </div>
+
+      <form method="post" novalidate>
+        {% csrf_token %}
+        <input type="hidden" name="as_role" value="{{ as_role }}">
+
+        <div class="mb-3">
+          <label for="id_username" class="form-label">Username</label>
+          <input type="text" name="username" id="id_username"
+                 class="form-control form-control-lg" autocomplete="username" required
+                 value="{{ username|default_if_none:'' }}">
+        </div>
+
+        <div class="mb-4">
+          <label for="id_password" class="form-label">Password</label>
+          <input type="password" name="password" id="id_password"
+                 class="form-control form-control-lg" autocomplete="current-password" required>
+        </div>
+
+        <button type="submit" class="btn btn-success w-100 fl-btn-lg fl-btn-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/><path d="m10 17 5-5-5-5M15 12H3"/></svg>
+          Log in as {% if as_role == 'admin' %}Admin{% else %}Trainee{% endif %}
+        </button>
+      </form>
+    </div>
+
+    {% if as_role != 'admin' %}
+    <p class="mt-3 mb-0 text-secondary small text-center">
+      No account yet? <a href="{% url 'users:register' %}">Create one</a>
+    </p>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}

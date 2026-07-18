@@ -1,0 +1,95 @@
+{% extends "base.html" %}
+
+{% block title %}Exercise library — Admin — Fit Logger{% endblock %}
+
+{% block content %}
+
+  <a href="{% url 'adminportal:settings' %}" class="btn btn-sm btn-outline-light mb-3 fl-btn-icon">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:1rem;height:1rem"><path d="m15 18-6-6 6-6"/></svg>
+    Back to settings
+  </a>
+
+  <div class="fl-enter mb-3">
+    <p class="fl-eyebrow mb-1">Admin</p>
+    <h1 class="h3 mb-0">Exercise library</h1>
+    <p class="text-secondary small mb-0">Add or remove exercises. Changes reach every trainee at once.</p>
+  </div>
+
+  {# Add form #}
+  <form method="post" action="{% url 'adminportal:add_exercise' %}" class="fl-card reveal mb-3">
+    {% csrf_token %}
+    <div class="fl-section-head" style="margin-bottom:.75rem">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M5 12h14"/></svg>
+      <h2 class="h6 text-uppercase text-secondary small mb-0">Add an exercise</h2>
+    </div>
+    <div class="row g-2">
+      <div class="col-12 col-md-5">
+        <label for="{{ form.name.id_for_label }}" class="form-label small">Name</label>
+        {{ form.name }}
+      </div>
+      <div class="col-6 col-md-3">
+        <label for="{{ form.muscle_group.id_for_label }}" class="form-label small">Muscle group</label>
+        {{ form.muscle_group }}
+      </div>
+      <div class="col-6 col-md-4">
+        <label for="{{ form.equipment.id_for_label }}" class="form-label small">Equipment</label>
+        {{ form.equipment }}
+      </div>
+    </div>
+    <button type="submit" class="btn btn-success w-100 mt-3">Add exercise</button>
+  </form>
+
+  {# Active library, grouped by muscle #}
+  {% for group_name, exercises in groups.items %}
+    <div class="fl-card reveal mb-3">
+      <h2 class="h6 text-uppercase text-secondary small mb-2">{{ group_name }}</h2>
+      {% for exercise in exercises %}
+        <div class="d-flex justify-content-between align-items-center py-2 {% if not forloop.last %}border-bottom border-secondary-subtle{% endif %}">
+          <div class="min-w-0 pe-3">
+            <span class="fw-semibold d-block">{{ exercise.name }}</span>
+            <span class="text-secondary small">
+              {{ exercise.get_equipment_display }}
+              {% if exercise.set_count %} · logged in {{ exercise.set_count }} set{{ exercise.set_count|pluralize }}{% endif %}
+            </span>
+          </div>
+          <form method="post" action="{% url 'adminportal:delete_exercise' exercise.id %}" class="m-0"
+                onsubmit="return confirm('{% if exercise.set_count %}Archive {{ exercise.name }}? It will disappear for trainees but its logged history is kept.{% else %}Delete {{ exercise.name }}? This cannot be undone.{% endif %}');">
+            {% csrf_token %}
+            <button type="submit" class="btn btn-sm btn-outline-danger fl-btn-icon" aria-label="Remove {{ exercise.name }}">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:1rem;height:1rem"><path d="M3 6h18M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2m3 0v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/></svg>
+              {% if exercise.set_count %}Archive{% else %}Delete{% endif %}
+            </button>
+          </form>
+        </div>
+      {% endfor %}
+    </div>
+  {% empty %}
+    <div class="fl-card reveal text-center">
+      <p class="text-secondary mb-0">The library is empty. Add an exercise above.</p>
+    </div>
+  {% endfor %}
+
+  {# Archived exercises #}
+  {% if archived %}
+    <div class="fl-card reveal mb-3">
+      <h2 class="h6 text-uppercase text-secondary small mb-1">Archived</h2>
+      <p class="text-secondary small mb-2">
+        Hidden from trainees, kept for the workouts that logged them. Restore to
+        return one to the library.
+      </p>
+      {% for exercise in archived %}
+        <div class="d-flex justify-content-between align-items-center py-2 {% if not forloop.last %}border-bottom border-secondary-subtle{% endif %}">
+          <div class="min-w-0 pe-3">
+            <span class="fw-semibold d-block">{{ exercise.name }}</span>
+            <span class="text-secondary small">{{ exercise.get_muscle_group_display }} · {{ exercise.get_equipment_display }}</span>
+          </div>
+          <form method="post" action="{% url 'adminportal:restore_exercise' exercise.id %}" class="m-0">
+            {% csrf_token %}
+            <button type="submit" class="btn btn-sm btn-outline-light">Restore</button>
+          </form>
+        </div>
+      {% endfor %}
+    </div>
+  {% endif %}
+
+{% endblock %}

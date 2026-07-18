@@ -1,0 +1,207 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}{{ session.name }} — Fit Logger{% endblock %}
+
+{% block content %}
+
+  <div class="fl-card fl-card-active fl-enter mb-3">
+    <span class="fl-badge fl-badge-active fl-badge-dot mb-2">In progress</span>
+    <h1 class="h5 mb-0 text-truncate">{{ session.name }}</h1>
+  </div>
+
+  {% comment %}
+    This session so far. On resume, this shows every exercise already logged
+    with its sets. The currently-selected exercise is skipped here because it
+    appears in full in the logging card below. Each entry links back to itself
+    to continue adding sets.
+  {% endcomment %}
+  {% if session_exercises %}
+    <div class="fl-card reveal mb-3">
+      <div class="fl-section-head" style="margin-bottom:.6rem">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M9 11l3 3 8-8"/><path d="M20 12v6a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h9"/></svg>
+        <h2 class="h6 text-uppercase text-secondary small mb-0">This session so far</h2>
+      </div>
+      <ul class="list-unstyled mb-0">
+        {% for exercise, sets in session_exercises.items %}
+          <li class="fl-session-ex">
+            <div class="d-flex justify-content-between align-items-baseline gap-2 mb-1">
+              <span class="fw-semibold">{{ exercise.name }}</span>
+              <a href="?exercise={{ exercise.id }}" class="btn btn-sm btn-outline-light flex-shrink-0">Continue</a>
+            </div>
+            <ul class="list-unstyled mb-0">
+              {% for set in sets %}
+                <li class="fl-prev-set">
+                  <span class="fl-set-badge">{{ set.set_number }}</span>
+                  <span class="fw-semibold">{{ set.weight|floatformat:"-2" }} kg × {{ set.reps }}</span>
+                </li>
+              {% endfor %}
+            </ul>
+          </li>
+        {% endfor %}
+      </ul>
+    </div>
+  {% endif %}
+
+  {# Exercise picker — add a new exercise, or switch to one already started. #}
+  <form method="get" id="exercise-picker" class="fl-card reveal mb-3">
+    <label for="exercise-select" class="form-label">
+      <span class="fl-section-head mb-0" style="gap:.45rem">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M6.5 6.5v11M17.5 6.5v11M4 9v6M20 9v6M6.5 12h11"/></svg>
+        Exercise
+      </span>
+    </label>
+    <div class="d-flex gap-2">
+      <select name="exercise" id="exercise-select" class="form-select form-select-lg">
+        <option value="">Choose an exercise…</option>
+        {% for group_name, exercises in exercise_groups.items %}
+          <optgroup label="{{ group_name }}">
+            {% for exercise in exercises %}
+              <option value="{{ exercise.id }}"
+                {% if selected_exercise and exercise.id == selected_exercise.id %}selected{% endif %}>
+                {{ exercise.name }}
+              </option>
+            {% endfor %}
+          </optgroup>
+        {% endfor %}
+      </select>
+      <button type="submit" class="btn btn-outline-light" id="exercise-go">Go</button>
+    </div>
+  </form>
+
+  {% if selected_exercise %}
+
+    {# LAST TIME — the core feature: what did I lift for this last session? #}
+    <div class="fl-card reveal mb-3">
+      <h2 class="h5 mb-3">{{ selected_exercise.name }}</h2>
+
+      <div class="fl-section-head" style="margin-bottom:.6rem">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v5h5"/><path d="M3.05 13A9 9 0 1 0 6 5.3L3 8"/><path d="M12 7v5l3 2"/></svg>
+        <h3 class="h6 text-uppercase text-secondary small mb-0">Last time</h3>
+      </div>
+
+      {% if previous_sets %}
+        <p class="text-secondary small mb-2">
+          {{ previous_session.started_at|date:"j M Y" }} — {{ previous_session.name }}
+        </p>
+        <ul class="list-unstyled mb-0">
+          {% for set in previous_sets %}
+            <li class="fl-prev-set">
+              <span class="fl-set-badge">{{ set.set_number }}</span>
+              <span class="fw-semibold">{{ set.weight|floatformat:"-2" }} kg × {{ set.reps }}</span>
+            </li>
+          {% endfor %}
+        </ul>
+      {% else %}
+        <p class="text-secondary mb-0">
+          First time logging this exercise. Today becomes your baseline.
+        </p>
+      {% endif %}
+    </div>
+
+    <div class="fl-card reveal mb-3">
+      <div class="fl-section-head" style="margin-bottom:.9rem">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2v4M12 18v4M4.9 4.9l2.9 2.9M16.2 16.2l2.9 2.9M2 12h4M18 12h4M4.9 19.1l2.9-2.9M16.2 7.8l2.9-2.9"/></svg>
+        <h3 class="h6 text-uppercase text-secondary small mb-0">Today</h3>
+      </div>
+
+      {% if todays_sets %}
+        <ul class="list-unstyled mb-3">
+          {% for set in todays_sets %}
+            <li class="fl-today-set">
+              <span class="fl-set-badge">{{ set.set_number }}</span>
+              <span class="fw-semibold">{{ set.weight|floatformat:"-2" }} kg × {{ set.reps }}</span>
+            </li>
+          {% endfor %}
+        </ul>
+      {% else %}
+        <p class="text-secondary small mb-3">No sets logged yet.</p>
+      {% endif %}
+
+      <form method="post" action="{% url 'workouts:log_set' session.id %}" id="set-form">
+        {% csrf_token %}
+        <input type="hidden" name="exercise_id" value="{{ selected_exercise.id }}">
+
+        <p class="text-uppercase fw-semibold mb-3" style="letter-spacing:.08em">
+          <span class="fl-set-badge me-1">{{ next_set_number }}</span> Set {{ next_set_number }}
+        </p>
+
+        {% comment %}
+          Steppers: typing 62.5 on a phone mid-set is miserable. Buttons are
+          easier than a keypad, and the field stays editable for odd values.
+        {% endcomment %}
+        <div class="mb-3">
+          <label for="{{ form.weight.id_for_label }}" class="form-label small text-secondary">
+            Weight (kg)
+          </label>
+          <div class="fl-stepper">
+            <button type="button" class="fl-step-btn" data-step-target="{{ form.weight.id_for_label }}"
+                    data-step="-2.5" aria-label="Decrease weight by 2.5 kg">−</button>
+            {{ form.weight }}
+            <button type="button" class="fl-step-btn" data-step-target="{{ form.weight.id_for_label }}"
+                    data-step="2.5" aria-label="Increase weight by 2.5 kg">+</button>
+          </div>
+        </div>
+
+        <div class="mb-4">
+          <label for="{{ form.reps.id_for_label }}" class="form-label small text-secondary">
+            Reps
+          </label>
+          <div class="fl-stepper">
+            <button type="button" class="fl-step-btn" data-step-target="{{ form.reps.id_for_label }}"
+                    data-step="-1" data-min="1" aria-label="Decrease reps by 1">−</button>
+            {{ form.reps }}
+            <button type="button" class="fl-step-btn" data-step-target="{{ form.reps.id_for_label }}"
+                    data-step="1" data-min="1" aria-label="Increase reps by 1">+</button>
+          </div>
+        </div>
+
+        {% comment %}
+          data-no-busy: workout.js already swaps this button to "Saving…" and
+          disables it against a double-tap. Letting nav.js also paint its
+          spinner over the top would hide that clearer message.
+        {% endcomment %}
+        <button type="submit" class="btn btn-success w-100 fl-btn-xl" data-no-busy>Save set</button>
+      </form>
+    </div>
+
+  {% else %}
+    <div class="fl-card reveal mb-3 text-center">
+      <span class="fl-empty-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M6.5 6.5v11M17.5 6.5v11M4 9v6M20 9v6M6.5 12h11"/></svg></span>
+      <p class="text-secondary mb-0">Choose an exercise above to see your previous performance and start logging.</p>
+    </div>
+  {% endif %}
+
+  {% comment %}
+    Notes + finish. One form: "Save note" keeps training, "Finish workout"
+    ends the session. Both submit the note, so it is never lost.
+  {% endcomment %}
+  <div class="fl-card reveal mb-3">
+    <div class="fl-section-head" style="margin-bottom:.6rem">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>
+      <h2 class="h6 text-uppercase text-secondary small mb-0">Workout note</h2>
+    </div>
+    <form method="post" action="{% url 'workouts:finish_workout' session.id %}">
+      {% csrf_token %}
+      {% if selected_exercise %}
+        <input type="hidden" name="exercise_id" value="{{ selected_exercise.id }}">
+      {% endif %}
+      <textarea name="notes" rows="2" class="form-control mb-3"
+                placeholder="How did it go? Anything to change next time? (optional)">{{ session.notes }}</textarea>
+
+      <div class="d-flex gap-2">
+        <button type="submit" formaction="{% url 'workouts:save_note' session.id %}"
+                class="btn btn-outline-light flex-fill">Save note</button>
+        <button type="submit" class="btn btn-success flex-fill fl-btn-lg fl-btn-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="width:1rem;height:1rem"><path d="M20 6 9 17l-5-5"/></svg>
+          Finish
+        </button>
+      </div>
+    </form>
+  </div>
+
+{% endblock %}
+
+{% block scripts %}
+  <script src="{% static 'js/workout.js' %}"></script>
+{% endblock %}

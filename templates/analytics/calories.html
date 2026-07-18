@@ -1,0 +1,107 @@
+{% extends "base.html" %}
+
+{% block title %}Calorie calculator — Fit Logger{% endblock %}
+
+{% block content %}
+
+  <div class="fl-enter mb-3">
+    <p class="fl-eyebrow mb-1">Energy</p>
+    <h1 class="h3 mb-1">Calorie calculator</h1>
+    <p class="text-secondary small mb-0">
+      Estimate the calories you need each day, based on your body and activity level.
+    </p>
+  </div>
+
+  {% if show_form %}
+    {# First visit, or a recalculation. #}
+    <div class="fl-card reveal mb-3">
+      <form method="post" novalidate>
+        {% csrf_token %}
+
+        {% for field in form %}
+          <div class="mb-3">
+            <label class="form-label">{{ field.label }}</label>
+            {{ field }}
+            {% if field.errors %}
+              <div class="text-danger small mt-1">
+                {% for error in field.errors %}{{ error }}{% endfor %}
+              </div>
+            {% endif %}
+          </div>
+        {% endfor %}
+
+        <button type="submit" class="btn btn-success w-100 fl-btn-lg mt-1">Calculate</button>
+      </form>
+    </div>
+
+    {% if calculation %}
+      <a href="{% url 'analytics:calories' %}" class="btn btn-link w-100">Cancel</a>
+    {% endif %}
+
+  {% else %}
+    {# Returning visit: show the saved result. #}
+    <div class="fl-card reveal mb-3">
+      <h2 class="h6 text-uppercase text-secondary mb-3">Your estimate</h2>
+      <div class="row g-2">
+        <div class="col-6">
+          <div class="fl-stat fl-stat-hero">
+            <span class="fl-stat-value" data-count="{{ calculation.maintenance_calories }}">{{ calculation.maintenance_calories }}</span>
+            <span class="fl-stat-label">Maintenance calories / day</span>
+          </div>
+        </div>
+        <div class="col-6">
+          <div class="fl-stat">
+            <span class="fl-stat-value" data-count="{{ calculation.bmr }}">{{ calculation.bmr }}</span>
+            <span class="fl-stat-label">BMR (at rest)</span>
+          </div>
+        </div>
+      </div>
+      <p class="text-secondary small mb-0 mt-3">
+        Based on {{ calculation.get_sex_display|lower }}, age {{ calculation.age }},
+        {{ calculation.height_cm }} cm, {{ calculation.weight_kg|floatformat:"-1" }} kg,
+        {{ calculation.get_activity_level_display|lower }}.
+      </p>
+    </div>
+
+    <div class="fl-card reveal mb-3">
+      <div class="fl-section-head">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="5"/><circle cx="12" cy="12" r="1"/></svg>
+        <h2 class="h6 text-uppercase text-secondary mb-0">Daily targets by goal</h2>
+      </div>
+      <ul class="list-unstyled mb-0">
+        {% for target in targets %}
+          <li class="fl-cal-goal">
+            <div>
+              <span class="fw-semibold">{{ target.label }}</span>
+              {% if target.sublabel %}
+                <span class="text-secondary small d-block">{{ target.sublabel }}</span>
+              {% endif %}
+            </div>
+            <div class="text-end">
+              <span class="fl-cal-value fl-gradient-text">{{ target.calories }}</span>
+              <span class="text-secondary small">Cal/day · {{ target.percent }}%</span>
+              {% if target.below_floor %}
+                <span class="d-block text-warning small">below recommended minimum</span>
+              {% endif %}
+            </div>
+          </li>
+        {% endfor %}
+      </ul>
+    </div>
+
+    <a href="{% url 'analytics:calories' %}?recalculate=1" class="btn btn-outline-light w-100 mb-2">
+      Recalculate
+    </a>
+    <a href="{% url 'analytics:calorie_guide' %}" class="btn btn-success w-100 fl-btn-lg fl-btn-icon mb-3">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2Z"/></svg>
+      Know your calories
+    </a>
+  {% endif %}
+
+  <p class="fl-phase-note mb-0">
+    These figures are estimates. They are general fitness guidance, not medical
+    or dietary advice. If you have a medical condition or a history of disordered
+    eating, speak to a qualified professional before changing how you eat.
+  </p>
+
+{% endblock %}

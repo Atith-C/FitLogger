@@ -1,0 +1,39 @@
+{% extends "base.html" %}
+
+{% block title %}Messages — Admin — Fit Logger{% endblock %}
+
+{% block content %}
+
+  <h1 class="h4 mb-3">Messages</h1>
+
+  {% for row in rows %}
+    <a href="{% url 'adminportal:conversation' row.conversation.id %}"
+       class="fl-card fl-notif d-block mb-2 text-decoration-none {% if row.unread %}fl-notif-unread{% endif %}">
+      <div class="d-flex justify-content-between align-items-start gap-2">
+        <div class="min-w-0">
+          <p class="fw-semibold mb-1">
+            {{ row.conversation.trainee.get_full_name|default:row.conversation.trainee.username }}
+          </p>
+          {% if row.latest %}
+            <p class="text-secondary small mb-0 text-truncate">
+              {% if row.latest.sender_id == row.conversation.trainee_id %}{{ row.conversation.trainee.username }}{% else %}You{% endif %}:
+              {{ row.latest.body }}
+            </p>
+          {% else %}
+            <p class="text-secondary small mb-0">No messages yet.</p>
+          {% endif %}
+        </div>
+        <div class="text-end flex-shrink-0">
+          {% if row.unread %}<span class="fl-bell-badge" style="position:static;display:inline-block">{{ row.unread }}</span>{% endif %}
+          {% if row.latest %}<p class="text-secondary small mb-0 mt-1">{{ row.latest.created_at|date:"j M, H:i" }}</p>{% endif %}
+        </div>
+      </div>
+    </a>
+  {% empty %}
+    <div class="fl-card text-center">
+      <p class="mb-1">No conversations yet.</p>
+      <p class="text-secondary small mb-0">When a trainee messages you, it'll appear here.</p>
+    </div>
+  {% endfor %}
+
+{% endblock %}

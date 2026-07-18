@@ -1,0 +1,766 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% comment %}
+  The public front door. Everything claimed on this page maps to a feature that
+  actually ships — the numbers, the formulae and the screens below are the ones
+  the app really uses, so a visitor who signs up finds what they were promised.
+{% endcomment %}
+
+{% block title %}Fit Logger — Train with a plan that knows you{% endblock %}
+
+{% block body_class %}fl-landing{% endblock %}
+
+{% block head %}
+  <link rel="stylesheet" href="{% static 'css/landing.css' %}">
+  <meta name="description" content="Fit Logger builds an AI workout plan around your goal, logs every set in seconds, and turns your training into progress you can see — 1RM trends, plateau alerts, calories and macros.">
+{% endblock %}
+
+{# Marketing chrome replaces the app navbar: anchor links, and a sign-up CTA. #}
+{% block nav %}
+  <nav class="fl-lnav" id="lnav" aria-label="Primary">
+    <div class="fl-lnav-inner">
+      <a class="fl-lnav-brand" href="{% url 'workouts:landing' %}">
+        <span class="fl-brand-mark" aria-hidden="true">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M6.5 6.5v11M17.5 6.5v11M4 9v6M20 9v6M6.5 12h11"/>
+          </svg>
+        </span>
+        <span>Fit&nbsp;Logger</span>
+      </a>
+
+      {% comment %}
+        No role="list"/"listitem" here: an explicit role replaces the implicit
+        one, so role="listitem" on an <a> stops it being announced as a link at
+        all and drops these five out of a screen reader's links list. The <nav>
+        is already the landmark that groups them.
+      {% endcomment %}
+      <div class="fl-lnav-links">
+        <a href="#train">Train</a>
+        <a href="#plan">AI Plans</a>
+        <a href="#progress">Progress</a>
+        <a href="#fuel">Fuel</a>
+        <a href="#faq">FAQ</a>
+      </div>
+
+      <div class="fl-lnav-cta">
+        <a class="fl-btn fl-btn-ghost" href="{% url 'users:login' %}">Log in</a>
+        <a class="fl-btn fl-btn-solid" href="{% url 'users:register' %}">Get started</a>
+      </div>
+    </div>
+  </nav>
+{% endblock %}
+
+{% block main_class %}fl-landing-main{% endblock %}
+
+{% block content %}
+
+{# ===================== HERO ===================== #}
+<section class="fl-sec fl-hero-sec" id="top">
+  <div class="fl-aurora" aria-hidden="true"><span></span><span></span><span></span></div>
+
+  <div class="fl-wrap fl-hero-grid">
+    <div class="fl-hero-copy">
+      <p class="fl-pill fl-enter">
+        <span class="fl-pill-dot" aria-hidden="true"></span>
+        AI plans · Real progress tracking
+      </p>
+
+      <h1 class="fl-display fl-enter fl-d1">
+        Stop guessing.<br>
+        <span class="fl-gradient-text">Start progressing.</span>
+      </h1>
+
+      <p class="fl-lede fl-enter fl-d2">
+        Fit Logger builds a workout plan around your goal, your week and your
+        gym — then logs every set in seconds and shows you, in numbers, that
+        you're getting stronger.
+      </p>
+
+      <div class="fl-hero-actions fl-enter fl-d3">
+        <a class="fl-btn fl-btn-solid fl-btn-xl" href="{% url 'users:register' %}">
+          Build my plan
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14M13 5l7 7-7 7"/></svg>
+        </a>
+        <a class="fl-btn fl-btn-ghost fl-btn-xl" href="#train">See how it works</a>
+      </div>
+
+      <p class="fl-hero-note fl-enter fl-d4">
+        Free to use · No credit card · Your data stays yours
+      </p>
+    </div>
+
+    {% comment %}
+      The statement piece: the real logging screen, rebuilt in HTML/CSS so it
+      weighs nothing and stays sharp on every display.
+    {% endcomment %}
+    <div class="fl-hero-art fl-enter fl-d2" aria-hidden="true">
+      {% comment %}
+        The float lives on the wrapper and the 3D tilt on the phone itself:
+        a keyframe animation outranks inline styles, so sharing one element
+        would let the float silently cancel the pointer parallax.
+      {% endcomment %}
+      <div class="fl-float">
+      <div class="fl-phone">
+        <div class="fl-phone-glow"></div>
+        <div class="fl-phone-screen">
+          <div class="fl-mock-top">
+            <span class="fl-mock-back">‹</span>
+            <span class="fl-mock-title">Push Day</span>
+            <span class="fl-mock-badge">24:18</span>
+          </div>
+
+          <div class="fl-mock-card">
+            <div class="fl-mock-label">Exercise</div>
+            <div class="fl-mock-select">
+              Bench Press
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>
+            </div>
+          </div>
+
+          <div class="fl-mock-prev">
+            <span class="fl-mock-prev-title">Last time · 4 days ago</span>
+            <div class="fl-mock-prev-sets">
+              <span>60 kg × 10</span><span>60 kg × 9</span><span>57.5 kg × 8</span>
+            </div>
+          </div>
+
+          <div class="fl-mock-card">
+            <div class="fl-mock-row">
+              <div>
+                <div class="fl-mock-label">Weight</div>
+                <div class="fl-mock-stepper">
+                  <span>−</span><b>62.5</b><span>+</span>
+                </div>
+              </div>
+              <div>
+                <div class="fl-mock-label">Reps</div>
+                <div class="fl-mock-stepper">
+                  <span>−</span><b>10</b><span>+</span>
+                </div>
+              </div>
+            </div>
+            <div class="fl-mock-save">Save set 3</div>
+          </div>
+
+          <div class="fl-mock-today">
+            <div class="fl-mock-set"><span class="fl-mock-n">1</span> 62.5 kg × 10 <em>625 kg</em></div>
+            <div class="fl-mock-set"><span class="fl-mock-n">2</span> 62.5 kg × 10 <em>625 kg</em></div>
+          </div>
+        </div>
+      </div>
+      </div>
+
+      {# Floating proof-chips orbiting the phone. #}
+      <div class="fl-chip fl-chip-1 fl-float-slow">
+        <span class="fl-chip-k">Est. 1RM</span>
+        <span class="fl-chip-v">83.3 kg</span>
+        <span class="fl-chip-up">▲ 4.2%</span>
+      </div>
+      <div class="fl-chip fl-chip-2 fl-float-slower">
+        <span class="fl-chip-k">This week</span>
+        <span class="fl-chip-v">3 / 4</span>
+        <span class="fl-chip-bar"><i style="width:75%"></i></span>
+      </div>
+    </div>
+  </div>
+
+  <a class="fl-scroll-cue" href="#train" aria-label="Scroll to features">
+    <span></span>
+  </a>
+</section>
+
+{# ===================== STAT STRIP ===================== #}
+<section class="fl-sec fl-strip-sec">
+  <div class="fl-wrap">
+    <div class="fl-strip reveal">
+      <div class="fl-strip-item">
+        <span class="fl-strip-v" data-count="10" data-suffix="">10</span>
+        <span class="fl-strip-k">Muscle groups tracked</span>
+      </div>
+      <div class="fl-strip-item">
+        <span class="fl-strip-v" data-count="7" data-suffix="">7</span>
+        <span class="fl-strip-k">Calorie goals, from cut to bulk</span>
+      </div>
+      <div class="fl-strip-item">
+        <span class="fl-strip-v" data-count="3" data-suffix="s">3s</span>
+        <span class="fl-strip-k">To log a set, two taps</span>
+      </div>
+      <div class="fl-strip-item">
+        <span class="fl-strip-v">AI</span>
+        <span class="fl-strip-k">Plans built around your profile</span>
+      </div>
+    </div>
+  </div>
+</section>
+
+{# ===================== TRAIN ===================== #}
+<section class="fl-sec" id="train">
+  <div class="fl-wrap">
+    <div class="fl-sec-head reveal">
+      <p class="fl-eyebrow">01 — Train</p>
+      <h2 class="fl-h2">Logging that keeps up with your workout</h2>
+      <p class="fl-sub">
+        The screen you use between sets should never slow you down. Fit Logger
+        pre-fills what you lifted last time, so most sets are two taps and done.
+      </p>
+    </div>
+
+    <div class="fl-split">
+      <div class="fl-split-copy reveal">
+        <ul class="fl-list">
+          <li>
+            <span class="fl-list-i" aria-hidden="true">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>
+            </span>
+            <div>
+              <h3>Last time, right there</h3>
+              <p>Pick an exercise and the sets you hit last session appear instantly — so you know exactly what to beat.</p>
+            </div>
+          </li>
+          <li>
+            <span class="fl-list-i" aria-hidden="true">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>
+            </span>
+            <div>
+              <h3>Steppers, not keyboards</h3>
+              <p>Weight moves in 2.5 kg taps, reps in 1. No number pad, no typos, no fumbling with sweaty hands.</p>
+            </div>
+          </li>
+          <li>
+            <span class="fl-list-i" aria-hidden="true">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>
+            </span>
+            <div>
+              <h3>Walk away, come back</h3>
+              <p>A workout stays open until you finish it. Close the tab mid-session and you resume on the exact exercise you left.</p>
+            </div>
+          </li>
+          <li>
+            <span class="fl-list-i" aria-hidden="true">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>
+            </span>
+            <div>
+              <h3>Every session, kept</h3>
+              <p>Your history stores each workout grouped by exercise, with notes you wrote at the time.</p>
+            </div>
+          </li>
+        </ul>
+      </div>
+
+      <div class="fl-split-art reveal">
+        <div class="fl-pane">
+          <div class="fl-pane-head">
+            <span class="fl-dot"></span><span class="fl-dot"></span><span class="fl-dot"></span>
+            <span class="fl-pane-title">This session so far</span>
+          </div>
+          <div class="fl-pane-body">
+            <div class="fl-ex-row">
+              <div class="fl-ex-name">Bench Press <em>3 sets</em></div>
+              <div class="fl-ex-sets"><span>62.5×10</span><span>62.5×10</span><span>60×9</span></div>
+            </div>
+            <div class="fl-ex-row">
+              <div class="fl-ex-name">Incline Dumbbell Press <em>3 sets</em></div>
+              <div class="fl-ex-sets"><span>22.5×12</span><span>22.5×11</span><span>22.5×9</span></div>
+            </div>
+            <div class="fl-ex-row">
+              <div class="fl-ex-name">Cable Fly <em>2 sets</em></div>
+              <div class="fl-ex-sets"><span>15×15</span><span>15×14</span></div>
+            </div>
+            <div class="fl-ex-total">
+              <span>Session volume</span>
+              <b class="fl-num">4,182 kg</b>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+{# ===================== PLAN ===================== #}
+<section class="fl-sec fl-sec-alt" id="plan">
+  <div class="fl-wrap">
+    <div class="fl-sec-head reveal">
+      <p class="fl-eyebrow">02 — Plan</p>
+      <h2 class="fl-h2">An AI plan that fits <span class="fl-gradient-text">your</span> week</h2>
+      <p class="fl-sub">
+        Tell Fit Logger your goal, how many days you can train, your experience
+        and where you lift. It writes a full plan around those constraints — and
+        you can rewrite any part of it.
+      </p>
+    </div>
+
+    <div class="fl-split fl-split-rev">
+      <div class="fl-split-art reveal">
+        <div class="fl-pane">
+          <div class="fl-pane-head">
+            <span class="fl-dot"></span><span class="fl-dot"></span><span class="fl-dot"></span>
+            <span class="fl-pane-title">Your plan · Build muscle · 4 days</span>
+          </div>
+          <div class="fl-pane-body">
+            <div class="fl-day">
+              <div class="fl-day-head"><span class="fl-day-n">Day 1</span> Upper Push</div>
+              <div class="fl-day-ex"><span>Bench Press</span><b>4 × 6–8</b></div>
+              <div class="fl-day-ex"><span>Overhead Press</span><b>3 × 8–10</b></div>
+              <div class="fl-day-ex"><span>Triceps Pushdown</span><b>3 × 10–12</b></div>
+            </div>
+            <div class="fl-day">
+              <div class="fl-day-head"><span class="fl-day-n">Day 2</span> Lower</div>
+              <div class="fl-day-ex"><span>Back Squat</span><b>4 × 5–8</b></div>
+              <div class="fl-day-ex"><span>Romanian Deadlift</span><b>3 × 8–10</b></div>
+            </div>
+            <div class="fl-day fl-day-ghost">
+              <div class="fl-day-head"><span class="fl-day-n">Day 3</span> Upper Pull</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="fl-split-copy reveal">
+        <ul class="fl-list">
+          <li>
+            <span class="fl-list-i" aria-hidden="true">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v3M12 18v3M3 12h3M18 12h3M5.6 5.6l2.1 2.1M16.3 16.3l2.1 2.1M18.4 5.6l-2.1 2.1M7.7 16.3l-2.1 2.1"/><circle cx="12" cy="12" r="3.2"/></svg>
+            </span>
+            <div>
+              <h3>Built from your profile</h3>
+              <p>Goal, days per week, experience level, gym or home, and how long you've got per session — all of it shapes the plan.</p>
+            </div>
+          </li>
+          <li>
+            <span class="fl-list-i" aria-hidden="true">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>
+            </span>
+            <div>
+              <h3>Yours to edit</h3>
+              <p>Rename days, swap exercises, change sets and rep ranges, add notes. Hate an exercise? Delete it. The plan bends to you.</p>
+            </div>
+          </li>
+          <li>
+            <span class="fl-list-i" aria-hidden="true">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v5h5"/><path d="M3.05 13A9 9 0 1 0 6 5.3L3 8"/></svg>
+            </span>
+            <div>
+              <h3>Regenerate anytime</h3>
+              <p>Goal changed? Schedule moved? Generate a fresh plan — old ones stay in your history so nothing is lost.</p>
+            </div>
+          </li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</section>
+
+{# ===================== PROGRESS ===================== #}
+<section class="fl-sec" id="progress">
+  <div class="fl-wrap">
+    <div class="fl-sec-head reveal">
+      <p class="fl-eyebrow">03 — Progress</p>
+      <h2 class="fl-h2">Proof you're getting stronger</h2>
+      <p class="fl-sub">
+        Feelings lie; numbers don't. Fit Logger turns your logged sets into the
+        three curves that actually matter — and tells you when one flattens out.
+      </p>
+    </div>
+
+    <div class="fl-bento">
+      <article class="fl-bento-card fl-bento-lg reveal">
+        <div class="fl-bento-head">
+          <h3>Estimated 1RM</h3>
+          <span class="fl-tag fl-tag-up">▲ 4.2%</span>
+        </div>
+        <p class="fl-bento-sub">Your true strength trend, via the Epley formula — so a heavy triple and a light set of ten land on the same scale.</p>
+        <svg class="fl-spark" viewBox="0 0 320 90" preserveAspectRatio="none" aria-hidden="true">
+          <defs>
+            <linearGradient id="sparkFill" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0%" stop-color="#22c55e" stop-opacity=".38"/>
+              <stop offset="100%" stop-color="#22c55e" stop-opacity="0"/>
+            </linearGradient>
+          </defs>
+          <path class="fl-spark-fill" d="M0,74 L46,68 L92,70 L138,54 L184,46 L230,30 L276,24 L320,14 L320,90 L0,90 Z" fill="url(#sparkFill)"/>
+          {% comment %}
+            pathLength="1" normalises the path's real length (~328 units) to 1,
+            so the CSS dash animation below can use 1/0 and always draw over the
+            full duration. Hard-coding a dasharray longer than the path spends
+            the first fifth of the animation drawing nothing.
+          {% endcomment %}
+          <path class="fl-spark-line" pathLength="1"
+                d="M0,74 L46,68 L92,70 L138,54 L184,46 L230,30 L276,24 L320,14"
+                fill="none" stroke="#a3e635" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+      </article>
+
+      <article class="fl-bento-card reveal">
+        <div class="fl-bento-head"><h3>Plateau alerts</h3></div>
+        <p class="fl-bento-sub">When your 1RM trend stalls across recent sessions, you get told — with the reason, not just a red dot.</p>
+        <div class="fl-alert-mock">
+          <span class="fl-alert-icon" aria-hidden="true">!</span>
+          <span>Bench Press has moved less than 2% over 4 sessions. Consider a deload or a rep-range change.</span>
+        </div>
+      </article>
+
+      <article class="fl-bento-card reveal">
+        <div class="fl-bento-head"><h3>Adherence</h3></div>
+        <p class="fl-bento-sub">Planned days versus days you actually trained, week by week. Honest, not flattering.</p>
+        <div class="fl-bars">
+          <span style="--h:55%"></span><span style="--h:75%"></span><span style="--h:100%"></span>
+          <span style="--h:50%"></span><span style="--h:75%"></span><span style="--h:100%"></span>
+          <span style="--h:75%"></span><span class="is-now" style="--h:100%"></span>
+        </div>
+      </article>
+
+      <article class="fl-bento-card reveal">
+        <div class="fl-bento-head"><h3>Volume &amp; max weight</h3></div>
+        <p class="fl-bento-sub">Total load moved per session and your heaviest set, tracked per exercise over time.</p>
+        <div class="fl-mini-stats">
+          <div><b class="fl-num">4,182</b><span>kg this session</span></div>
+          <div><b class="fl-num">62.5</b><span>kg best set</span></div>
+        </div>
+      </article>
+
+      <article class="fl-bento-card fl-bento-wide reveal">
+        <div class="fl-bento-head"><h3>Wellness passport</h3></div>
+        <p class="fl-bento-sub">Log weight, body fat and muscle mass. Fit Logger charts the trend, computes your BMI, and shows what changed over the last four weeks — because the scale alone never tells the whole story.</p>
+        <div class="fl-legend-row">
+          <span><i style="background:#22c55e"></i> Weight</span>
+          <span><i style="background:#a3e635"></i> Body fat</span>
+          <span><i style="background:#38bdf8"></i> Muscle mass</span>
+        </div>
+      </article>
+    </div>
+  </div>
+</section>
+
+{# ===================== FUEL ===================== #}
+<section class="fl-sec fl-sec-alt" id="fuel">
+  <div class="fl-wrap">
+    <div class="fl-sec-head reveal">
+      <p class="fl-eyebrow">04 — Fuel</p>
+      <h2 class="fl-h2">Training is half of it</h2>
+      <p class="fl-sub">
+        Fit Logger works out what you burn, then turns your chosen goal into
+        grams on a plate — with the food tables to hit them.
+      </p>
+    </div>
+
+    <div class="fl-split">
+      <div class="fl-split-copy reveal">
+        <ul class="fl-list">
+          <li>
+            <span class="fl-list-i" aria-hidden="true">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2s5 4 5 9a5 5 0 0 1-10 0c0-1.5.6-2.8 1.3-3.8C9 9.5 12 8 12 2Z"/></svg>
+            </span>
+            <div>
+              <h3>Calories, properly calculated</h3>
+              <p>Mifflin-St Jeor for your BMR, scaled by how active you really are — the same maths dietitians use, not a guess.</p>
+            </div>
+          </li>
+          <li>
+            <span class="fl-list-i" aria-hidden="true">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18"/><path d="m7 14 4-4 3 3 5-6"/></svg>
+            </span>
+            <div>
+              <h3>Seven goals, one table</h3>
+              <p>From a mild cut to a fast bulk, see every target side by side — with unsafe deficits flagged rather than quietly served.</p>
+            </div>
+          </li>
+          <li>
+            <span class="fl-list-i" aria-hidden="true">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M11 20A7 7 0 0 1 4 13c0-4 3-7 7-7 1 0 2 .2 3 .6M20 8c0 5-3 9-8 12"/></svg>
+            </span>
+            <div>
+              <h3>Macros in grams</h3>
+              <p>Protein set to your bodyweight, fat as a share of intake, carbs filling the rest, fibre on top — plus food tables so you know what that looks like.</p>
+            </div>
+          </li>
+        </ul>
+      </div>
+
+      <div class="fl-split-art reveal">
+        <div class="fl-pane">
+          <div class="fl-pane-head">
+            <span class="fl-dot"></span><span class="fl-dot"></span><span class="fl-dot"></span>
+            <span class="fl-pane-title">Daily targets · Build muscle</span>
+          </div>
+          <div class="fl-pane-body">
+            <div class="fl-cal-hero">
+              <span class="fl-cal-n fl-num">2,640</span>
+              <span class="fl-cal-u">kcal / day</span>
+            </div>
+            <div class="fl-macro-bar" aria-hidden="true">
+              <span style="width:26%;background:#22c55e"></span>
+              <span style="width:24%;background:#a3e635"></span>
+              <span style="width:50%;background:#38bdf8"></span>
+            </div>
+            <div class="fl-macro-grid">
+              <div><b class="fl-num">158 g</b><span>Protein</span></div>
+              <div><b class="fl-num">73 g</b><span>Fat</span></div>
+              <div><b class="fl-num">330 g</b><span>Carbs</span></div>
+              <div><b class="fl-num">30–40 g</b><span>Fibre</span></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+{# ===================== HOW IT WORKS ===================== #}
+<section class="fl-sec" id="how">
+  <div class="fl-wrap">
+    <div class="fl-sec-head reveal">
+      <p class="fl-eyebrow">Getting started</p>
+      <h2 class="fl-h2">Training in three minutes</h2>
+    </div>
+
+    <ol class="fl-steps">
+      <li class="fl-step reveal">
+        <span class="fl-step-n">1</span>
+        <h3>Tell us about you</h3>
+        <p>Age, weight, height, goal, and how many days a week you can realistically train. Takes a minute.</p>
+      </li>
+      <li class="fl-step reveal">
+        <span class="fl-step-n">2</span>
+        <h3>Get your plan</h3>
+        <p>Fit Logger writes a full training week around those answers. Edit anything you don't like.</p>
+      </li>
+      <li class="fl-step reveal">
+        <span class="fl-step-n">3</span>
+        <h3>Log and watch it climb</h3>
+        <p>Hit start, log your sets, finish. From your second session on, the charts start telling the story.</p>
+      </li>
+    </ol>
+  </div>
+</section>
+
+{# ===================== FAQ ===================== #}
+<section class="fl-sec fl-sec-alt" id="faq">
+  <div class="fl-wrap fl-wrap-narrow">
+    <div class="fl-sec-head reveal">
+      <p class="fl-eyebrow">FAQ</p>
+      <h2 class="fl-h2">Questions, answered</h2>
+      <p class="fl-sub">Everything people ask before signing up.</p>
+    </div>
+
+    <div class="accordion fl-faq reveal" id="faqAccordion">
+      {% comment %}
+        Bootstrap's accordion is already bundled in base.html, so this costs no
+        extra JavaScript and is keyboard-accessible out of the box.
+      {% endcomment %}
+
+      <div class="accordion-item">
+        <h3 class="accordion-header">
+          <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#faq1" aria-expanded="false" aria-controls="faq1">
+            Is Fit Logger free?
+          </button>
+        </h3>
+        <div id="faq1" class="accordion-collapse collapse" data-bs-parent="#faqAccordion">
+          <div class="accordion-body">
+            Yes. Create an account, generate a plan, log your training and use every
+            analytics screen without paying anything or entering a card.
+          </div>
+        </div>
+      </div>
+
+      <div class="accordion-item">
+        <h3 class="accordion-header">
+          <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#faq2" aria-expanded="false" aria-controls="faq2">
+            Do I need a gym?
+          </button>
+        </h3>
+        <div id="faq2" class="accordion-collapse collapse" data-bs-parent="#faqAccordion">
+          <div class="accordion-body">
+            No. Your profile has a training-location setting — commercial gym, home,
+            or limited equipment — and your plan is generated around what you
+            actually have access to.
+          </div>
+        </div>
+      </div>
+
+      <div class="accordion-item">
+        <h3 class="accordion-header">
+          <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#faq3" aria-expanded="false" aria-controls="faq3">
+            How is the AI plan actually built?
+          </button>
+        </h3>
+        <div id="faq3" class="accordion-collapse collapse" data-bs-parent="#faqAccordion">
+          <div class="accordion-body">
+            When you hit generate, your profile — goal, training days, experience
+            level, location and session length — is sent to a large language model
+            that returns a structured plan. Every plan is validated before it is
+            saved, so you never get a broken week with twelve leg days or
+            impossible set counts.
+          </div>
+        </div>
+      </div>
+
+      <div class="accordion-item">
+        <h3 class="accordion-header">
+          <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#faq4" aria-expanded="false" aria-controls="faq4">
+            Can I change the plan it gives me?
+          </button>
+        </h3>
+        <div id="faq4" class="accordion-collapse collapse" data-bs-parent="#faqAccordion">
+          <div class="accordion-body">
+            Completely. Rename days, change the focus, swap or delete exercises,
+            adjust sets and rep ranges, and add your own notes. You can also
+            regenerate from scratch — previous plans stay in your history.
+          </div>
+        </div>
+      </div>
+
+      <div class="accordion-item">
+        <h3 class="accordion-header">
+          <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#faq5" aria-expanded="false" aria-controls="faq5">
+            What is "estimated 1RM" and why should I care?
+          </button>
+        </h3>
+        <div id="faq5" class="accordion-collapse collapse" data-bs-parent="#faqAccordion">
+          <div class="accordion-body">
+            It's an estimate of the heaviest single rep you could manage, worked out
+            from the weight and reps you actually logged using the Epley formula.
+            It matters because it puts every set on one scale: 60 kg × 10 and
+            80 kg × 3 become directly comparable, so you can see real strength
+            gains even when your rep ranges change.
+          </div>
+        </div>
+      </div>
+
+      <div class="accordion-item">
+        <h3 class="accordion-header">
+          <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#faq6" aria-expanded="false" aria-controls="faq6">
+            How does it know I've plateaued?
+          </button>
+        </h3>
+        <div id="faq6" class="accordion-collapse collapse" data-bs-parent="#faqAccordion">
+          <div class="accordion-body">
+            Fit Logger watches your estimated 1RM trend for an exercise across your
+            recent sessions. If it has barely moved once there's enough data to
+            judge, you get a plateau flag with the reason behind it — a prompt to
+            deload, change rep range, or check your recovery.
+          </div>
+        </div>
+      </div>
+
+      <div class="accordion-item">
+        <h3 class="accordion-header">
+          <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#faq7" aria-expanded="false" aria-controls="faq7">
+            Are the calorie numbers safe to follow?
+          </button>
+        </h3>
+        <div id="faq7" class="accordion-collapse collapse" data-bs-parent="#faqAccordion">
+          <div class="accordion-body">
+            They're calculated with Mifflin-St Jeor, the standard equation for
+            resting metabolic rate, then scaled by your activity level. Aggressive
+            goals are checked against a safe minimum intake and flagged when they
+            fall below it. That said, this is general fitness guidance, not medical
+            advice — if you have a health condition, talk to a doctor or dietitian.
+          </div>
+        </div>
+      </div>
+
+      <div class="accordion-item">
+        <h3 class="accordion-header">
+          <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#faq8" aria-expanded="false" aria-controls="faq8">
+            Does my data stay private?
+          </button>
+        </h3>
+        <div id="faq8" class="accordion-collapse collapse" data-bs-parent="#faqAccordion">
+          <div class="accordion-body">
+            Your workouts, measurements and plans belong to your account and are only
+            ever shown to you — every screen is scoped to the signed-in user. Your
+            profile details are sent to the AI provider only at the moment you ask
+            for a new plan, and nothing is sold or shared with advertisers.
+          </div>
+        </div>
+      </div>
+
+      <div class="accordion-item">
+        <h3 class="accordion-header">
+          <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#faq9" aria-expanded="false" aria-controls="faq9">
+            What if I forget to finish a workout?
+          </button>
+        </h3>
+        <div id="faq9" class="accordion-collapse collapse" data-bs-parent="#faqAccordion">
+          <div class="accordion-body">
+            Nothing is lost. An unfinished workout stays open and waiting on your
+            home screen and in your history, with every set you logged still in it.
+            Pick it back up whenever — or delete it if that session is done with.
+          </div>
+        </div>
+      </div>
+
+      <div class="accordion-item">
+        <h3 class="accordion-header">
+          <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#faq10" aria-expanded="false" aria-controls="faq10">
+            Do I have to use kilograms?
+          </button>
+        </h3>
+        <div id="faq10" class="accordion-collapse collapse" data-bs-parent="#faqAccordion">
+          <div class="accordion-body">
+            Right now weights and body measurements are recorded in kilograms and
+            centimetres throughout. Pounds and inches aren't supported yet — it's on
+            the list.
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+{# ===================== FINAL CTA ===================== #}
+<section class="fl-sec fl-cta-sec">
+  <div class="fl-wrap fl-wrap-narrow">
+    <div class="fl-cta reveal">
+      <div class="fl-cta-glow" aria-hidden="true"></div>
+      <h2 class="fl-h2">Your next session is the one that counts</h2>
+      <p class="fl-sub">
+        Build your plan, log your first workout, and let the numbers do the arguing.
+      </p>
+      <div class="fl-hero-actions fl-hero-actions-center">
+        <a class="fl-btn fl-btn-solid fl-btn-xl" href="{% url 'users:register' %}">
+          Create your free account
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14M13 5l7 7-7 7"/></svg>
+        </a>
+        <a class="fl-btn fl-btn-ghost fl-btn-xl" href="{% url 'users:login' %}">I already have one</a>
+      </div>
+      <p class="fl-hero-note">Free · No card · Cancel by just leaving</p>
+    </div>
+  </div>
+</section>
+
+{# ===================== FOOTER ===================== #}
+<footer class="fl-foot">
+  <div class="fl-wrap fl-foot-inner">
+    <div class="fl-foot-brand">
+      <span class="fl-brand-mark" aria-hidden="true">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M6.5 6.5v11M17.5 6.5v11M4 9v6M20 9v6M6.5 12h11"/>
+        </svg>
+      </span>
+      <span>Fit&nbsp;Logger</span>
+    </div>
+
+    <nav class="fl-foot-links" aria-label="Footer">
+      <a href="#train">Train</a>
+      <a href="#plan">AI Plans</a>
+      <a href="#progress">Progress</a>
+      <a href="#fuel">Fuel</a>
+      <a href="#faq">FAQ</a>
+      <a href="{% url 'users:login' %}">Log in</a>
+      <a href="{% url 'users:register' %}">Sign up</a>
+    </nav>
+
+    <p class="fl-foot-note">
+      General fitness guidance only — not medical advice. Consult a professional
+      before starting a new training or nutrition programme.
+    </p>
+  </div>
+</footer>
+
+{% endblock %}
+
+{% block scripts %}
+  <script src="{% static 'js/landing.js' %}"></script>
+{% endblock %}
