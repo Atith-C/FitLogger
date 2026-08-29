@@ -25,6 +25,13 @@ PUBLIC_ROUTES = {
     # "Check your inbox", reached straight after signup, before any session
     # exists. It renders nothing an anonymous visitor should not see.
     "users:verify_sent",
+    # Account recovery. Every one of these is reached by someone who cannot
+    # log in, so all four have to serve an anonymous visitor; none of them
+    # reveals whether an account exists.
+    "users:password_reset",
+    "users:password_reset_done",
+    "users:password_reset_confirm",
+    "users:password_reset_complete",
 }
 
 # Django's own admin. Not part of this app's RBAC — it has its own staff gate,

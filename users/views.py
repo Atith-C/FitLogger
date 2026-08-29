@@ -1,10 +1,14 @@
+from django.conf import settings
 from django.contrib import messages
 from django.contrib.auth import authenticate, login
+from django.contrib.auth import views as auth_views
 from django.contrib.auth.decorators import login_required
 from django.shortcuts import redirect, render
+from django.urls import reverse_lazy
 from django.views.decorators.http import require_POST
 
 from .decorators import trainee_required
+from .recovery import ForgotAccountForm, send_password_changed_email
 from .forms import RegistrationForm, UserProfileForm
 from .models import Role
 from .services import (
@@ -220,6 +224,48 @@ def _pending_user(request):
     if user is None or get_or_create_profile(user).email_verified:
         return None
     return user
+
+
+class ForgotAccountView(auth_views.PasswordResetView):
+    """"I forgot my username, my password, or both" — one form for all three.
+
+    The response is identical whether or not the address belongs to an account
+    (Django's default), so this cannot be used to find out who is registered.
+    """
+
+    form_class = ForgotAccountForm
+    template_name = "users/password_reset.html"
+    subject_template_name = "users/emails/password_reset_subject.txt"
+    email_template_name = "users/emails/password_reset.txt"
+    html_email_template_name = "users/emails/password_reset.html"
+    success_url = reverse_lazy("users:password_reset_done")
+    extra_email_context = {"expiry_hours": settings.PASSWORD_RESET_TIMEOUT // 3600}
+
+
+class SetNewPasswordView(auth_views.PasswordResetConfirmView):
+    """Set a new password from a reset link."""
+
+    template_name = "users/password_reset_confirm.html"
+    success_url = reverse_lazy("users:password_reset_complete")
+
+    def form_valid(self, form):
+        response = super().form_valid(form)
+        user = form.user
+
+        # Reaching here means they opened the mailbox, which is the same proof
+        # signup verification asks for. Someone who never confirmed but can
+        # still reset through that inbox has demonstrated it either way.
+        mark_verified(get_or_create_profile(user))
+
+        try:
+            send_password_changed_email(user)
+        except Exception:
+            # The password is already saved. Failing the request now would
+            # tell the user their reset did not work when it did, and they
+            # would try again with a token that is already spent.
+            pass
+
+        return response
 
 
 @login_required

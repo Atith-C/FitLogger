@@ -157,6 +157,12 @@ SESSION_SAVE_EVERY_REQUEST = True
 # Email — account verification and password recovery
 # --------------------------------------------------------------------------
 
+# How long a password-reset link stays valid. Django's default is three days,
+# which is a long time for a link that grants an account to anyone holding it.
+# An hour is enough to read the mail and act on it, and a fresh link is one
+# click away.
+PASSWORD_RESET_TIMEOUT = 60 * 60
+
 BREVO_API_KEY = os.environ.get("BREVO_API_KEY", "")
 DEFAULT_FROM_EMAIL = os.environ.get("DEFAULT_FROM_EMAIL", "Fit Logger <noreply@fitlogger.app>")
 
