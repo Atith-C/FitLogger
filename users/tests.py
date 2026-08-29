@@ -898,3 +898,48 @@ class ProfileSharingTests(TestCase):
         self.assertIn("Allow admin to view my profile", body)
         self.assertIn("Enable", body)
         self.assertIn("Disable", body)
+
+
+class BrevoEmailBackendTests(TestCase):
+    """The Brevo payload shape. Nothing here touches the network."""
+
+    def _payload(self, message):
+        from .email_backend import BrevoEmailBackend
+
+        return BrevoEmailBackend()._payload(message)
+
+    def test_display_name_is_split_out_of_the_from_address(self):
+        from django.core.mail import EmailMessage
+
+        payload = self._payload(
+            EmailMessage("s", "b", "Fit Logger <sender@gmail.com>", ["to@gmail.com"])
+        )
+
+        # Brevo wants name and address as separate fields; sending the raw
+        # "Fit Logger <sender@gmail.com>" string as the address is rejected.
+        self.assertEqual(payload["sender"], {"email": "sender@gmail.com", "name": "Fit Logger"})
+        self.assertEqual(payload["to"], [{"email": "to@gmail.com"}])
+        self.assertEqual(payload["textContent"], "b")
+        self.assertNotIn("htmlContent", payload)
+
+    def test_html_alternative_is_carried_across(self):
+        from django.core.mail import EmailMultiAlternatives
+
+        message = EmailMultiAlternatives("s", "plain", "a@gmail.com", ["to@gmail.com"])
+        message.attach_alternative("<p>rich</p>", "text/html")
+
+        payload = self._payload(message)
+
+        self.assertEqual(payload["textContent"], "plain")
+        self.assertEqual(payload["htmlContent"], "<p>rich</p>")
+
+    def test_missing_api_key_raises_rather_than_dropping_the_message(self):
+        from django.core.mail import EmailMessage
+
+        from .email_backend import BrevoEmailBackend
+
+        with self.settings(BREVO_API_KEY=""):
+            with self.assertRaises(ValueError):
+                BrevoEmailBackend().send_messages(
+                    [EmailMessage("s", "b", "a@gmail.com", ["to@gmail.com"])]
+                )

@@ -154,6 +154,33 @@ SESSION_SAVE_EVERY_REQUEST = True
 
 
 # --------------------------------------------------------------------------
+# Email — account verification and password recovery
+# --------------------------------------------------------------------------
+
+BREVO_API_KEY = os.environ.get("BREVO_API_KEY", "")
+DEFAULT_FROM_EMAIL = os.environ.get("DEFAULT_FROM_EMAIL", "Fit Logger <noreply@fitlogger.app>")
+
+# Verification and password-reset links are absolute, because they are read in
+# a mail client with no idea which site sent them. Production sets this to the
+# deployed URL; localhost is only ever the development default.
+SITE_BASE_URL = os.environ.get("SITE_BASE_URL", "http://127.0.0.1:8000").rstrip("/")
+
+# In development mail is printed to the console, so no real address is ever
+# mailed by accident and no send quota is spent while iterating. Production
+# goes over Brevo's HTTP API: Vercel blocks outbound SMTP, so Django's SMTP
+# backend would fail there.
+if DEBUG:
+    EMAIL_BACKEND = "django.core.mail.backends.console.EmailBackend"
+else:
+    EMAIL_BACKEND = "users.email_backend.BrevoEmailBackend"
+
+# Overrides the console backend above, so a real send can be tested locally:
+# set EMAIL_SEND_FOR_REAL=1 in .env for one run.
+if os.environ.get("EMAIL_SEND_FOR_REAL") == "1":
+    EMAIL_BACKEND = "users.email_backend.BrevoEmailBackend"
+
+
+# --------------------------------------------------------------------------
 # Internationalization
 # --------------------------------------------------------------------------
 
