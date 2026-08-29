@@ -18,15 +18,38 @@ from .services import (
 PASSWORD = "str0ng-pass-2026"
 
 
+def register_and_verify(client, username="newbie", email=None):
+    """Complete a signup the way a real trainee does: post the form, then
+    follow the link that lands in the inbox.
+
+    Admins are told about a trainee at verification, not at submission, so a
+    bare POST no longer produces a notification.
+    """
+    from django.core import mail
+
+    client.post(
+        reverse("users:register"),
+        {
+            "username": username,
+            "email": email or f"{username}@gmail.com",
+            "password1": PASSWORD,
+            "password2": PASSWORD,
+        },
+    )
+    link = [word for word in mail.outbox[-1].body.split() if "/verify/" in word][0]
+    client.get(link)
+    client.logout()
+
+
 def make_admin(username="admin1"):
     user = User.objects.create_user(username=username, password=PASSWORD)
-    UserProfile.objects.create(user=user, role=Role.ADMIN)
+    UserProfile.objects.create(user=user, role=Role.ADMIN, email_verified=True)
     return user
 
 
 def make_trainee(username="trainee1"):
     user = User.objects.create_user(username=username, password=PASSWORD)
-    UserProfile.objects.create(user=user, role=Role.TRAINEE)
+    UserProfile.objects.create(user=user, role=Role.TRAINEE, email_verified=True)
     return user
 
 
@@ -85,15 +108,7 @@ class TriggerTests(TestCase):
         return qs.filter(category=category) if category else qs
 
     def test_new_trainee_registration_notifies_admins(self):
-        self.client.post(
-            reverse("users:register"),
-            {
-                "username": "newbie",
-                "email": "newbie@example.com",
-                "password1": PASSWORD,
-                "password2": PASSWORD,
-            },
-        )
+        register_and_verify(self.client)
         note = self._admin_notes(Category.NEW_TRAINEE).first()
         self.assertIsNotNone(note)
         # Spec wording: the title is fixed, so the name moved to the message.
@@ -281,11 +296,7 @@ class NotificationWordingTests(TestCase):
         )
 
     def test_new_trainee_registered(self):
-        self.client.post(
-            reverse("users:register"),
-            {"username": "newbie", "email": "n@example.com",
-             "password1": PASSWORD, "password2": PASSWORD},
-        )
+        register_and_verify(self.client)
         note = self._note(Category.NEW_TRAINEE)
         self.assertEqual(note.title, "New Trainee Registered")
         self.assertIn("newbie", note.message)
@@ -420,11 +431,7 @@ class NotificationRoutingTests(TestCase):
 
     def test_a_registration_notification_opens_the_new_trainee(self):
         self.client.logout()
-        self.client.post(
-            reverse("users:register"),
-            {"username": "newbie", "email": "n@example.com",
-             "password1": PASSWORD, "password2": PASSWORD},
-        )
+        register_and_verify(self.client)
         newbie = User.objects.get(username="newbie")
 
         self.client.force_login(self.admin)

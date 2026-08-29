@@ -9,6 +9,11 @@
 knowledge/
 *.pdf
 
+# Database backup/migration artifacts. Tens of MB of real user data — these
+# must never reach GitHub or GitLab. Kept on disk as rollback safety.
+*.sql
+*.dump
+
 # Python
 __pycache__/
 *.py[cod]

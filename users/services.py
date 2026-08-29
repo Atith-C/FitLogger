@@ -114,22 +114,14 @@ def register_user(form):
     Public signup always produces a TRAINEE — the role is set here on the
     server, never taken from the request. The user and their profile are
     created together in one transaction, so a user can never exist without one.
+
+    The account starts unverified and admins are not told about it yet: the
+    "New Trainee Registered" notification fires in mark_verified(), once the
+    person has actually opened the link. Announcing it here would fill the
+    portal with signups that were abandoned or automated.
     """
     user = form.save()
-    UserProfile.objects.create(user=user, role=Role.TRAINEE)
-
-    from notifications.models import Category
-    from notifications.services import notify_admins
-
-    notify_admins(
-        # The spec's exact string. The name lives in the message rather than
-        # the title, so the list still says who without breaking the wording.
-        "New Trainee Registered",
-        message=f"{trainee_display(user)} just created an account.",
-        link=admin_trainee_link(user),
-        actor=user,
-        category=Category.NEW_TRAINEE,
-    )
+    UserProfile.objects.create(user=user, role=Role.TRAINEE, email_verified=False)
     return user
 
 
@@ -139,8 +131,15 @@ def get_or_create_profile(user):
     Registration always creates a profile, but users made with
     createsuperuser bypass that path — so we heal the gap here rather than
     crashing on a missing related object.
+
+    A profile healed here belongs to an account that never went through public
+    signup — createsuperuser, seed_admin — so it is verified on creation.
+    Applying the unverified default would lock those accounts out of the site
+    they administer, waiting on a confirmation email nothing ever sent.
     """
-    profile, _ = UserProfile.objects.get_or_create(user=user)
+    profile, _ = UserProfile.objects.get_or_create(
+        user=user, defaults={"email_verified": True}
+    )
     return profile
 
 
@@ -247,6 +246,43 @@ def restore_trainee(trainee):
     trainee.is_active = True
     trainee.save(update_fields=["is_active"])
     return profile
+
+
+def username_for_login(value):
+    """Resolve what was typed in the login box to a username.
+
+    Anything without an "@" is already a username and is returned untouched.
+    An address is matched on its normalized form, so someone who signed up as
+    "a.dith+gym@gmail.com" can log in as "adith@gmail.com" — Gmail treats them
+    as one mailbox, so the login box has to as well.
+
+    Returns the input unchanged when nothing matches, letting authenticate()
+    fail exactly as it would for a wrong username. Nothing here reveals
+    whether an account exists.
+    """
+    from django.contrib.auth.models import User
+
+    from .validators import normalize_gmail
+
+    if "@" not in value:
+        return value
+
+    target = normalize_gmail(value)
+    if target:
+        matches = [
+            user
+            for user in User.objects.filter(email__icontains="@g").only("username", "email")
+            if normalize_gmail(user.email) == target
+        ]
+    else:
+        # Accounts that predate the Gmail-only rule keep their address, and
+        # their owners can still sign in with it.
+        matches = list(User.objects.filter(email__iexact=value.strip()).only("username"))
+
+    # Historic data can hold the same address twice; User.email was never
+    # unique. An ambiguous address resolves to nothing rather than guessing
+    # which account the person meant — their username still works.
+    return matches[0].username if len(matches) == 1 else value
 
 
 def refused_login_reason(username, password):

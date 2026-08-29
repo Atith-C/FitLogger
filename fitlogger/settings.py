@@ -115,12 +115,33 @@ DATABASES = {
         "HOST": os.environ.get("DATABASE_HOST", "localhost"),
         "PORT": os.environ.get("DATABASE_PORT", "5432"),
         "OPTIONS": {
-            "sslmode": "require",
+            # Neon requires SSL, so "require" stays the default and production
+            # is unchanged. Overridable because a local PostgreSQL is usually
+            # built without SSL, and refusing to connect to it forces local
+            # development and the test runner onto the production database.
+            "sslmode": os.environ.get("DATABASE_SSLMODE", "require"),
         },
     }
 }
 
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
+
+
+# --------------------------------------------------------------------------
+# Cache — rate-limit counters
+# --------------------------------------------------------------------------
+
+# PostgreSQL rather than Django's default local-memory cache. The application
+# runs on serverless functions, where consecutive requests may be handled by
+# different instances: an in-memory counter would be near-empty on every hit
+# and cap nothing. The table is created by a migration, so a deploy needs no
+# extra command.
+CACHES = {
+    "default": {
+        "BACKEND": "django.core.cache.backends.db.DatabaseCache",
+        "LOCATION": "fitlogger_cache",
+    }
+}
 
 
 # --------------------------------------------------------------------------
@@ -147,6 +168,39 @@ SESSION_EXPIRE_AT_BROWSER_CLOSE = True
 # Any activity refreshes the session, so a long workout cannot time out
 # mid-session while the user is actively logging sets.
 SESSION_SAVE_EVERY_REQUEST = True
+
+
+# --------------------------------------------------------------------------
+# Email — account verification and password recovery
+# --------------------------------------------------------------------------
+
+# How long a password-reset link stays valid. Django's default is three days,
+# which is a long time for a link that grants an account to anyone holding it.
+# An hour is enough to read the mail and act on it, and a fresh link is one
+# click away.
+PASSWORD_RESET_TIMEOUT = 60 * 60
+
+BREVO_API_KEY = os.environ.get("BREVO_API_KEY", "")
+DEFAULT_FROM_EMAIL = os.environ.get("DEFAULT_FROM_EMAIL", "Fit Logger <noreply@fitlogger.app>")
+
+# Verification and password-reset links are absolute, because they are read in
+# a mail client with no idea which site sent them. Production sets this to the
+# deployed URL; localhost is only ever the development default.
+SITE_BASE_URL = os.environ.get("SITE_BASE_URL", "http://127.0.0.1:8000").rstrip("/")
+
+# In development mail is printed to the console, so no real address is ever
+# mailed by accident and no send quota is spent while iterating. Production
+# goes over Brevo's HTTP API: Vercel blocks outbound SMTP, so Django's SMTP
+# backend would fail there.
+if DEBUG:
+    EMAIL_BACKEND = "django.core.mail.backends.console.EmailBackend"
+else:
+    EMAIL_BACKEND = "users.email_backend.BrevoEmailBackend"
+
+# Overrides the console backend above, so a real send can be tested locally:
+# set EMAIL_SEND_FOR_REAL=1 in .env for one run.
+if os.environ.get("EMAIL_SEND_FOR_REAL") == "1":
+    EMAIL_BACKEND = "users.email_backend.BrevoEmailBackend"
 
 
 # --------------------------------------------------------------------------

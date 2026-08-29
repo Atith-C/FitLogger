@@ -58,7 +58,7 @@ class RegistrationTests(TestCase):
     def _register(self, **overrides):
         data = {
             "username": "alice",
-            "email": "alice@example.com",
+            "email": "alice@gmail.com",
             "password1": VALID_PASSWORD,
             "password2": VALID_PASSWORD,
         }
@@ -75,9 +75,12 @@ class RegistrationTests(TestCase):
         user = User.objects.get(username="alice")
         self.assertTrue(UserProfile.objects.filter(user=user).exists())
 
-    def test_registration_logs_the_user_in(self):
+    def test_registration_does_not_log_the_user_in(self):
+        """The account is inert until the emailed link is followed; the rest of
+        that flow lives in tests_verification.py."""
         response = self._register()
-        self.assertRedirects(response, reverse("users:profile"))
+        self.assertRedirects(response, reverse("users:verify_sent"))
+        self.assertFalse(response.wsgi_request.user.is_authenticated)
 
     def test_password_is_hashed_not_stored_raw(self):
         self._register()
@@ -87,7 +90,7 @@ class RegistrationTests(TestCase):
 
     def test_duplicate_email_is_rejected(self):
         User.objects.create_user(
-            username="existing", email="alice@example.com", password=VALID_PASSWORD
+            username="existing", email="alice@gmail.com", password=VALID_PASSWORD
         )
         response = self._register()
 
@@ -96,9 +99,9 @@ class RegistrationTests(TestCase):
 
     def test_duplicate_email_check_ignores_case(self):
         User.objects.create_user(
-            username="existing", email="Alice@Example.com", password=VALID_PASSWORD
+            username="existing", email="Alice@Gmail.com", password=VALID_PASSWORD
         )
-        self._register(email="alice@example.com")
+        self._register(email="alice@gmail.com")
         self.assertFalse(User.objects.filter(username="alice").exists())
 
     def test_mismatched_passwords_are_rejected(self):
@@ -701,7 +704,7 @@ class RoleModelTests(TestCase):
             reverse("users:register"),
             {
                 "username": "newbie",
-                "email": "newbie@example.com",
+                "email": "newbie@gmail.com",
                 "password1": VALID_PASSWORD,
                 "password2": VALID_PASSWORD,
             },
@@ -748,9 +751,9 @@ class SeedAdminCommandTests(TestCase):
 class RoleDecoratorTests(TestCase):
     def setUp(self):
         self.trainee = User.objects.create_user(username="tina", password=VALID_PASSWORD)
-        UserProfile.objects.create(user=self.trainee, role=Role.TRAINEE)
+        UserProfile.objects.create(user=self.trainee, role=Role.TRAINEE, email_verified=True)
         self.admin = User.objects.create_user(username="adam", password=VALID_PASSWORD)
-        UserProfile.objects.create(user=self.admin, role=Role.ADMIN)
+        UserProfile.objects.create(user=self.admin, role=Role.ADMIN, email_verified=True)
 
     def test_admin_route_allows_admin(self):
         self.client.force_login(self.admin)
@@ -769,9 +772,9 @@ class RoleDecoratorTests(TestCase):
 class LoginRedirectTests(TestCase):
     def setUp(self):
         self.trainee = User.objects.create_user(username="tina", password=VALID_PASSWORD)
-        UserProfile.objects.create(user=self.trainee, role=Role.TRAINEE)
+        UserProfile.objects.create(user=self.trainee, role=Role.TRAINEE, email_verified=True)
         self.admin = User.objects.create_user(username="adam", password=VALID_PASSWORD)
-        UserProfile.objects.create(user=self.admin, role=Role.ADMIN)
+        UserProfile.objects.create(user=self.admin, role=Role.ADMIN, email_verified=True)
 
     def test_trainee_login_redirects_home(self):
         response = self.client.post(
@@ -809,9 +812,9 @@ class RoleChromeTests(TestCase):
 
     def setUp(self):
         self.trainee = User.objects.create_user(username="tina", password=VALID_PASSWORD)
-        UserProfile.objects.create(user=self.trainee, role=Role.TRAINEE)
+        UserProfile.objects.create(user=self.trainee, role=Role.TRAINEE, email_verified=True)
         self.admin = User.objects.create_user(username="adam", password=VALID_PASSWORD)
-        UserProfile.objects.create(user=self.admin, role=Role.ADMIN)
+        UserProfile.objects.create(user=self.admin, role=Role.ADMIN, email_verified=True)
 
     def test_trainee_pages_show_the_tab_bar_and_joey(self):
         self.client.force_login(self.trainee)
@@ -898,3 +901,215 @@ class ProfileSharingTests(TestCase):
         self.assertIn("Allow admin to view my profile", body)
         self.assertIn("Enable", body)
         self.assertIn("Disable", body)
+
+
+class BrevoEmailBackendTests(TestCase):
+    """The Brevo payload shape. Nothing here touches the network."""
+
+    def _payload(self, message):
+        from .email_backend import BrevoEmailBackend
+
+        return BrevoEmailBackend()._payload(message)
+
+    def test_display_name_is_split_out_of_the_from_address(self):
+        from django.core.mail import EmailMessage
+
+        payload = self._payload(
+            EmailMessage("s", "b", "Fit Logger <sender@gmail.com>", ["to@gmail.com"])
+        )
+
+        # Brevo wants name and address as separate fields; sending the raw
+        # "Fit Logger <sender@gmail.com>" string as the address is rejected.
+        self.assertEqual(payload["sender"], {"email": "sender@gmail.com", "name": "Fit Logger"})
+        self.assertEqual(payload["to"], [{"email": "to@gmail.com"}])
+        self.assertEqual(payload["textContent"], "b")
+        self.assertNotIn("htmlContent", payload)
+
+    def test_html_alternative_is_carried_across(self):
+        from django.core.mail import EmailMultiAlternatives
+
+        message = EmailMultiAlternatives("s", "plain", "a@gmail.com", ["to@gmail.com"])
+        message.attach_alternative("<p>rich</p>", "text/html")
+
+        payload = self._payload(message)
+
+        self.assertEqual(payload["textContent"], "plain")
+        self.assertEqual(payload["htmlContent"], "<p>rich</p>")
+
+    def test_missing_api_key_raises_rather_than_dropping_the_message(self):
+        from django.core.mail import EmailMessage
+
+        from .email_backend import BrevoEmailBackend
+
+        with self.settings(BREVO_API_KEY=""):
+            with self.assertRaises(ValueError):
+                BrevoEmailBackend().send_messages(
+                    [EmailMessage("s", "b", "a@gmail.com", ["to@gmail.com"])]
+                )
+
+
+class GmailNormalizationTests(TestCase):
+    """Gmail treats dots and "+tags" as noise, so one mailbox has many
+    spellings. All of them must resolve to a single identity."""
+
+    def test_variants_of_one_mailbox_share_an_identity(self):
+        from .validators import normalize_gmail
+
+        canonical = normalize_gmail("adith@gmail.com")
+        for variant in [
+            "ADITH@GMAIL.COM",
+            "a.d.i.t.h@gmail.com",
+            "adith+gym@gmail.com",
+            "a.dith+anything@googlemail.com",
+            "  adith@gmail.com  ",
+        ]:
+            self.assertEqual(normalize_gmail(variant), canonical, variant)
+
+    def test_different_mailboxes_stay_different(self):
+        from .validators import normalize_gmail
+
+        self.assertNotEqual(normalize_gmail("adith@gmail.com"), normalize_gmail("atith@gmail.com"))
+
+    def test_non_gmail_normalizes_to_nothing(self):
+        """So a caller can never compare two non-Gmail addresses as if they
+        had been normalized."""
+        from .validators import normalize_gmail
+
+        self.assertEqual(normalize_gmail("adith@outlook.com"), "")
+        self.assertEqual(normalize_gmail("adith@dummy.com"), "")
+
+    def test_local_part_that_collapses_to_nothing_is_rejected(self):
+        from .validators import normalize_gmail
+
+        self.assertEqual(normalize_gmail("...@gmail.com"), "")
+        self.assertEqual(normalize_gmail("+tag@gmail.com"), "")
+
+
+class GmailOnlyRegistrationTests(TestCase):
+    def _register(self, email, username="alice"):
+        return self.client.post(
+            reverse("users:register"),
+            {
+                "username": username,
+                "email": email,
+                "password1": VALID_PASSWORD,
+                "password2": VALID_PASSWORD,
+            },
+        )
+
+    def test_non_gmail_addresses_are_refused(self):
+        for email in [
+            "dummy@dummy.com",
+            "person@yahoo.com",
+            "person@outlook.com",
+            "person@gmail.com.evil.com",
+        ]:
+            with self.subTest(email=email):
+                response = self._register(email)
+                self.assertEqual(response.status_code, 200)  # redisplayed
+                self.assertFalse(User.objects.filter(username="alice").exists())
+
+    def test_gmail_and_googlemail_are_accepted(self):
+        self._register("alice@gmail.com", username="alice")
+        # Signup logs the new user straight in, and register/ turns an
+        # authenticated visitor away — so the second signup needs a clean
+        # session, not just a second POST.
+        self.client.logout()
+        self._register("bob@googlemail.com", username="bob")
+
+        self.assertTrue(User.objects.filter(username="alice").exists())
+        self.assertTrue(User.objects.filter(username="bob").exists())
+
+    def test_one_mailbox_cannot_register_twice_through_dots_or_tags(self):
+        """The whole point of normalizing: without it, a single inbox could
+        farm unlimited accounts that each look like a new address."""
+        User.objects.create_user(
+            username="existing", email="adith@gmail.com", password=VALID_PASSWORD
+        )
+
+        for variant in ["a.d.i.t.h@gmail.com", "adith+spam@gmail.com", "adith@googlemail.com"]:
+            with self.subTest(variant=variant):
+                self._register(variant)
+                self.assertFalse(User.objects.filter(username="alice").exists())
+
+    def test_address_is_stored_lowercased(self):
+        self._register("Alice.Smith@Gmail.com")
+        self.assertEqual(User.objects.get(username="alice").email, "alice.smith@gmail.com")
+
+    def test_existing_non_gmail_accounts_are_untouched(self):
+        """Grandfathering: the rule applies to new signups, not to the accounts
+        already in the database."""
+        legacy = User.objects.create_user(
+            username="legacy", email="legacy@example.com", password=VALID_PASSWORD
+        )
+        legacy.refresh_from_db()
+        self.assertEqual(legacy.email, "legacy@example.com")
+
+
+class EmailVerifiedFieldTests(TestCase):
+    def test_new_profiles_start_unverified(self):
+        user = User.objects.create_user(
+            username="fresh", email="fresh@gmail.com", password=VALID_PASSWORD
+        )
+        self.assertFalse(UserProfile.objects.create(user=user).email_verified)
+
+    def test_verification_is_independent_of_blocking_and_removal(self):
+        """is_active already means blocked-or-removed. Verification must be a
+        separate axis, or refused_login_reason() cannot tell a user which of
+        the three actually applies to them."""
+        from .services import set_trainee_blocked
+
+        user = User.objects.create_user(
+            username="both", email="both@gmail.com", password=VALID_PASSWORD
+        )
+        profile = UserProfile.objects.create(user=user, email_verified=True)
+
+        set_trainee_blocked(user, True)
+        user.refresh_from_db()
+        profile.refresh_from_db()
+
+        self.assertFalse(user.is_active)
+        self.assertTrue(profile.email_verified)
+
+
+class GrandfatherMigrationTests(TestCase):
+    """The data migration is a one-shot that cannot be re-run against
+    production, so its logic is checked here instead."""
+
+    def _migration(self):
+        """The migration module, which cannot be imported by name because it
+        starts with a digit."""
+        import importlib
+
+        return importlib.import_module("users.migrations.0012_grandfather_existing_accounts")
+
+    def _legacy_profiles(self):
+        for i in range(3):
+            user = User.objects.create_user(
+                username=f"legacy{i}", email=f"legacy{i}@example.com", password=VALID_PASSWORD
+            )
+            UserProfile.objects.create(user=user, email_verified=False)
+
+    def test_every_existing_profile_is_marked_verified(self):
+        """Accounts that predate verification must keep working — including the
+        ones whose address is not Gmail and so could never satisfy the new
+        signup rule."""
+        from django.apps import apps
+
+        self._legacy_profiles()
+
+        self._migration().grandfather_existing_accounts(apps, None)
+
+        self.assertEqual(UserProfile.objects.filter(email_verified=False).count(), 0)
+        self.assertEqual(UserProfile.objects.count(), 3)
+
+    def test_the_migration_reverses(self):
+        from django.apps import apps
+
+        self._legacy_profiles()
+        migration = self._migration()
+
+        migration.grandfather_existing_accounts(apps, None)
+        migration.unverify_everyone(apps, None)
+
+        self.assertEqual(UserProfile.objects.filter(email_verified=True).count(), 0)

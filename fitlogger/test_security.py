@@ -22,6 +22,16 @@ PUBLIC_ROUTES = {
     "users:login",
     "users:register",
     "users:logout",       # POST-only; logging out an anonymous user is harmless
+    # "Check your inbox", reached straight after signup, before any session
+    # exists. It renders nothing an anonymous visitor should not see.
+    "users:verify_sent",
+    # Account recovery. Every one of these is reached by someone who cannot
+    # log in, so all four have to serve an anonymous visitor; none of them
+    # reveals whether an account exists.
+    "users:password_reset",
+    "users:password_reset_done",
+    "users:password_reset_confirm",
+    "users:password_reset_complete",
 }
 
 # Django's own admin. Not part of this app's RBAC — it has its own staff gate,
@@ -168,7 +178,7 @@ class RoleIsServerSideTests(TestCase):
     def test_registration_always_creates_a_trainee(self):
         self.client.post(
             reverse("users:register"),
-            {"username": "sneaky", "email": "s@example.com",
+            {"username": "sneaky", "email": "s@gmail.com",
              "password1": PASSWORD, "password2": PASSWORD},
         )
         user = User.objects.get(username="sneaky")
@@ -179,7 +189,7 @@ class RoleIsServerSideTests(TestCase):
         # nothing rather than trusting that it is absent.
         self.client.post(
             reverse("users:register"),
-            {"username": "climber", "email": "c@example.com",
+            {"username": "climber", "email": "c@gmail.com",
              "password1": PASSWORD, "password2": PASSWORD,
              "role": Role.ADMIN, "is_staff": "on", "is_superuser": "on"},
         )
@@ -258,7 +268,7 @@ class PasswordStorageTests(TestCase):
     def test_a_registered_password_is_hashed(self):
         self.client.post(
             reverse("users:register"),
-            {"username": "hashme", "email": "h@example.com",
+            {"username": "hashme", "email": "h@gmail.com",
              "password1": PASSWORD, "password2": PASSWORD},
         )
         user = User.objects.get(username="hashme")
