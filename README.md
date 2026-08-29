@@ -3,13 +3,13 @@
 An AI-powered Progressive Web App for workout logging, progress analytics, and
 adaptive workout-plan generation.
 
+**[Live Demo](https://fit-logger-lime.vercel.app/)**
+
 Built as a single Django project using Django Templates. There is no separate
 JavaScript frontend — JavaScript is used only where the browser genuinely
 requires it (dynamic set inputs, IndexedDB, offline sync, the service worker,
 and chart rendering).
 
-> **Status:** Phase 1 of 13 complete (Django foundation). This README grows with
-> each phase and is finalised in Phase 13.
 
 ## Problem
 
