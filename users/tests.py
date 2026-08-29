@@ -58,7 +58,7 @@ class RegistrationTests(TestCase):
     def _register(self, **overrides):
         data = {
             "username": "alice",
-            "email": "alice@example.com",
+            "email": "alice@gmail.com",
             "password1": VALID_PASSWORD,
             "password2": VALID_PASSWORD,
         }
@@ -87,7 +87,7 @@ class RegistrationTests(TestCase):
 
     def test_duplicate_email_is_rejected(self):
         User.objects.create_user(
-            username="existing", email="alice@example.com", password=VALID_PASSWORD
+            username="existing", email="alice@gmail.com", password=VALID_PASSWORD
         )
         response = self._register()
 
@@ -96,9 +96,9 @@ class RegistrationTests(TestCase):
 
     def test_duplicate_email_check_ignores_case(self):
         User.objects.create_user(
-            username="existing", email="Alice@Example.com", password=VALID_PASSWORD
+            username="existing", email="Alice@Gmail.com", password=VALID_PASSWORD
         )
-        self._register(email="alice@example.com")
+        self._register(email="alice@gmail.com")
         self.assertFalse(User.objects.filter(username="alice").exists())
 
     def test_mismatched_passwords_are_rejected(self):
@@ -701,7 +701,7 @@ class RoleModelTests(TestCase):
             reverse("users:register"),
             {
                 "username": "newbie",
-                "email": "newbie@example.com",
+                "email": "newbie@gmail.com",
                 "password1": VALID_PASSWORD,
                 "password2": VALID_PASSWORD,
             },
@@ -943,3 +943,101 @@ class BrevoEmailBackendTests(TestCase):
                 BrevoEmailBackend().send_messages(
                     [EmailMessage("s", "b", "a@gmail.com", ["to@gmail.com"])]
                 )
+
+
+class GmailNormalizationTests(TestCase):
+    """Gmail treats dots and "+tags" as noise, so one mailbox has many
+    spellings. All of them must resolve to a single identity."""
+
+    def test_variants_of_one_mailbox_share_an_identity(self):
+        from .validators import normalize_gmail
+
+        canonical = normalize_gmail("adith@gmail.com")
+        for variant in [
+            "ADITH@GMAIL.COM",
+            "a.d.i.t.h@gmail.com",
+            "adith+gym@gmail.com",
+            "a.dith+anything@googlemail.com",
+            "  adith@gmail.com  ",
+        ]:
+            self.assertEqual(normalize_gmail(variant), canonical, variant)
+
+    def test_different_mailboxes_stay_different(self):
+        from .validators import normalize_gmail
+
+        self.assertNotEqual(normalize_gmail("adith@gmail.com"), normalize_gmail("atith@gmail.com"))
+
+    def test_non_gmail_normalizes_to_nothing(self):
+        """So a caller can never compare two non-Gmail addresses as if they
+        had been normalized."""
+        from .validators import normalize_gmail
+
+        self.assertEqual(normalize_gmail("adith@outlook.com"), "")
+        self.assertEqual(normalize_gmail("adith@dummy.com"), "")
+
+    def test_local_part_that_collapses_to_nothing_is_rejected(self):
+        from .validators import normalize_gmail
+
+        self.assertEqual(normalize_gmail("...@gmail.com"), "")
+        self.assertEqual(normalize_gmail("+tag@gmail.com"), "")
+
+
+class GmailOnlyRegistrationTests(TestCase):
+    def _register(self, email, username="alice"):
+        return self.client.post(
+            reverse("users:register"),
+            {
+                "username": username,
+                "email": email,
+                "password1": VALID_PASSWORD,
+                "password2": VALID_PASSWORD,
+            },
+        )
+
+    def test_non_gmail_addresses_are_refused(self):
+        for email in [
+            "dummy@dummy.com",
+            "person@yahoo.com",
+            "person@outlook.com",
+            "person@gmail.com.evil.com",
+        ]:
+            with self.subTest(email=email):
+                response = self._register(email)
+                self.assertEqual(response.status_code, 200)  # redisplayed
+                self.assertFalse(User.objects.filter(username="alice").exists())
+
+    def test_gmail_and_googlemail_are_accepted(self):
+        self._register("alice@gmail.com", username="alice")
+        # Signup logs the new user straight in, and register/ turns an
+        # authenticated visitor away — so the second signup needs a clean
+        # session, not just a second POST.
+        self.client.logout()
+        self._register("bob@googlemail.com", username="bob")
+
+        self.assertTrue(User.objects.filter(username="alice").exists())
+        self.assertTrue(User.objects.filter(username="bob").exists())
+
+    def test_one_mailbox_cannot_register_twice_through_dots_or_tags(self):
+        """The whole point of normalizing: without it, a single inbox could
+        farm unlimited accounts that each look like a new address."""
+        User.objects.create_user(
+            username="existing", email="adith@gmail.com", password=VALID_PASSWORD
+        )
+
+        for variant in ["a.d.i.t.h@gmail.com", "adith+spam@gmail.com", "adith@googlemail.com"]:
+            with self.subTest(variant=variant):
+                self._register(variant)
+                self.assertFalse(User.objects.filter(username="alice").exists())
+
+    def test_address_is_stored_lowercased(self):
+        self._register("Alice.Smith@Gmail.com")
+        self.assertEqual(User.objects.get(username="alice").email, "alice.smith@gmail.com")
+
+    def test_existing_non_gmail_accounts_are_untouched(self):
+        """Grandfathering: the rule applies to new signups, not to the accounts
+        already in the database."""
+        legacy = User.objects.create_user(
+            username="legacy", email="legacy@example.com", password=VALID_PASSWORD
+        )
+        legacy.refresh_from_db()
+        self.assertEqual(legacy.email, "legacy@example.com")

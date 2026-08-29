@@ -3,26 +3,36 @@ from django.contrib.auth.forms import UserCreationForm
 from django.contrib.auth.models import User
 
 from .models import ActivityLevel, BodyMeasurement, CalorieCalculation, Sex, UserProfile
+from .validators import gmail_already_registered, validate_gmail
 
 
 class RegistrationForm(UserCreationForm):
-    """Registration with a required, unique email.
+    """Registration with a required, unique Gmail address.
 
     Password hashing and password-strength validation come from
     UserCreationForm — we never touch raw passwords ourselves.
     """
 
-    email = forms.EmailField(required=True)
+    email = forms.EmailField(
+        required=True,
+        label="Gmail address",
+        help_text="We send your verification link and password resets here.",
+    )
 
     class Meta(UserCreationForm.Meta):
         model = User
         fields = ("username", "email")
 
     def clean_email(self):
+        # Gmail only. The address has to receive the verification link, so a
+        # mailbox that cannot be opened is no better than a made-up one.
+        email = validate_gmail(self.cleaned_data["email"])
+
         # Django's User.email is not unique at the database level, so the
-        # duplicate check has to be made here.
-        email = self.cleaned_data["email"].strip().lower()
-        if User.objects.filter(email__iexact=email).exists():
+        # duplicate check has to be made here. It compares normalized
+        # addresses, so the dot and "+tag" spellings of one Gmail inbox cannot
+        # each register their own account.
+        if gmail_already_registered(email):
             raise forms.ValidationError("An account with this email already exists.")
         return email
 
