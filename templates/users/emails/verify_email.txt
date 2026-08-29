@@ -1,0 +1,13 @@
+Hey {{ username }},
+
+Welcome to Fit Logger. Confirm this email address to activate your account:
+
+{{ verify_url }}
+
+The link works for {{ expiry_hours }} hours. If it expires, you can ask for a
+new one from the login page.
+
+If you did not sign up for Fit Logger, ignore this email — no account is
+active until the link above is used.
+
+— Fit Logger

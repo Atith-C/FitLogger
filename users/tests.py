@@ -75,9 +75,12 @@ class RegistrationTests(TestCase):
         user = User.objects.get(username="alice")
         self.assertTrue(UserProfile.objects.filter(user=user).exists())
 
-    def test_registration_logs_the_user_in(self):
+    def test_registration_does_not_log_the_user_in(self):
+        """The account is inert until the emailed link is followed; the rest of
+        that flow lives in tests_verification.py."""
         response = self._register()
-        self.assertRedirects(response, reverse("users:profile"))
+        self.assertRedirects(response, reverse("users:verify_sent"))
+        self.assertFalse(response.wsgi_request.user.is_authenticated)
 
     def test_password_is_hashed_not_stored_raw(self):
         self._register()
@@ -748,9 +751,9 @@ class SeedAdminCommandTests(TestCase):
 class RoleDecoratorTests(TestCase):
     def setUp(self):
         self.trainee = User.objects.create_user(username="tina", password=VALID_PASSWORD)
-        UserProfile.objects.create(user=self.trainee, role=Role.TRAINEE)
+        UserProfile.objects.create(user=self.trainee, role=Role.TRAINEE, email_verified=True)
         self.admin = User.objects.create_user(username="adam", password=VALID_PASSWORD)
-        UserProfile.objects.create(user=self.admin, role=Role.ADMIN)
+        UserProfile.objects.create(user=self.admin, role=Role.ADMIN, email_verified=True)
 
     def test_admin_route_allows_admin(self):
         self.client.force_login(self.admin)
@@ -769,9 +772,9 @@ class RoleDecoratorTests(TestCase):
 class LoginRedirectTests(TestCase):
     def setUp(self):
         self.trainee = User.objects.create_user(username="tina", password=VALID_PASSWORD)
-        UserProfile.objects.create(user=self.trainee, role=Role.TRAINEE)
+        UserProfile.objects.create(user=self.trainee, role=Role.TRAINEE, email_verified=True)
         self.admin = User.objects.create_user(username="adam", password=VALID_PASSWORD)
-        UserProfile.objects.create(user=self.admin, role=Role.ADMIN)
+        UserProfile.objects.create(user=self.admin, role=Role.ADMIN, email_verified=True)
 
     def test_trainee_login_redirects_home(self):
         response = self.client.post(
@@ -809,9 +812,9 @@ class RoleChromeTests(TestCase):
 
     def setUp(self):
         self.trainee = User.objects.create_user(username="tina", password=VALID_PASSWORD)
-        UserProfile.objects.create(user=self.trainee, role=Role.TRAINEE)
+        UserProfile.objects.create(user=self.trainee, role=Role.TRAINEE, email_verified=True)
         self.admin = User.objects.create_user(username="adam", password=VALID_PASSWORD)
-        UserProfile.objects.create(user=self.admin, role=Role.ADMIN)
+        UserProfile.objects.create(user=self.admin, role=Role.ADMIN, email_verified=True)
 
     def test_trainee_pages_show_the_tab_bar_and_joey(self):
         self.client.force_login(self.trainee)

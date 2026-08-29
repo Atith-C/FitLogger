@@ -58,12 +58,12 @@ GENERIC_MESSAGE = "Incorrect username or password"
 
 def make_admin(username="admin1"):
     u = User.objects.create_user(username=username, password=PASSWORD)
-    UserProfile.objects.create(user=u, role=Role.ADMIN)
+    UserProfile.objects.create(user=u, role=Role.ADMIN, email_verified=True)
     return u
 
 def make_trainee(username="trainee1", **user_kwargs):
     u = User.objects.create_user(username=username, password=PASSWORD, **user_kwargs)
-    UserProfile.objects.create(user=u, role=Role.TRAINEE)
+    UserProfile.objects.create(user=u, role=Role.TRAINEE, email_verified=True)
     return u
 
 def make_session(user, days_ago=0, completed=True, name="Workout"):

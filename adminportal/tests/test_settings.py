@@ -162,7 +162,7 @@ class SignupSwitchTests(TestCase):
     def _register(self, username="newbie"):
         return self.client.post(
             self.url,
-            {"username": username, "email": f"{username}@example.com",
+            {"username": username, "email": f"{username}@gmail.com",
              "password1": PASSWORD, "password2": PASSWORD},
         )
 

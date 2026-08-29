@@ -1,0 +1,25 @@
+{% extends "base.html" %}
+
+{% block title %}Link expired — Fit Logger{% endblock %}
+
+{% block content %}
+<div class="fl-auth">
+  <div class="fl-auth-form fl-enter mx-auto">
+
+    <div class="text-center mb-4 mt-2">
+      <span class="fl-avatar mx-auto mb-3" aria-hidden="true">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:1.5rem;height:1.5rem"><circle cx="12" cy="12" r="9"/><path d="M12 7v6M12 16h.01"/></svg>
+      </span>
+      <h1 class="h3 mb-1">This link no longer works</h1>
+    </div>
+
+    <div class="fl-card">
+      <p>Confirmation links expire after 24 hours, and each one can only be sent to the address it was issued for.</p>
+      <p class="text-secondary small mb-3">
+        Log in with your username and password and we'll send you a fresh one.
+      </p>
+      <a href="{% url 'users:login' %}" class="btn btn-success w-100">Go to login</a>
+    </div>
+  </div>
+</div>
+{% endblock %}

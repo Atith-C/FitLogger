@@ -114,22 +114,14 @@ def register_user(form):
     Public signup always produces a TRAINEE — the role is set here on the
     server, never taken from the request. The user and their profile are
     created together in one transaction, so a user can never exist without one.
+
+    The account starts unverified and admins are not told about it yet: the
+    "New Trainee Registered" notification fires in mark_verified(), once the
+    person has actually opened the link. Announcing it here would fill the
+    portal with signups that were abandoned or automated.
     """
     user = form.save()
-    UserProfile.objects.create(user=user, role=Role.TRAINEE)
-
-    from notifications.models import Category
-    from notifications.services import notify_admins
-
-    notify_admins(
-        # The spec's exact string. The name lives in the message rather than
-        # the title, so the list still says who without breaking the wording.
-        "New Trainee Registered",
-        message=f"{trainee_display(user)} just created an account.",
-        link=admin_trainee_link(user),
-        actor=user,
-        category=Category.NEW_TRAINEE,
-    )
+    UserProfile.objects.create(user=user, role=Role.TRAINEE, email_verified=False)
     return user
 
 
@@ -139,8 +131,15 @@ def get_or_create_profile(user):
     Registration always creates a profile, but users made with
     createsuperuser bypass that path — so we heal the gap here rather than
     crashing on a missing related object.
+
+    A profile healed here belongs to an account that never went through public
+    signup — createsuperuser, seed_admin — so it is verified on creation.
+    Applying the unverified default would lock those accounts out of the site
+    they administer, waiting on a confirmation email nothing ever sent.
     """
-    profile, _ = UserProfile.objects.get_or_create(user=user)
+    profile, _ = UserProfile.objects.get_or_create(
+        user=user, defaults={"email_verified": True}
+    )
     return profile
 
 

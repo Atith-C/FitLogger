@@ -14,6 +14,7 @@ from .services import (
     set_profile_sharing,
     update_profile,
 )
+from .verification import mark_verified, read_token, send_verification_email
 
 
 def dashboard_url_for(user):
@@ -58,10 +59,22 @@ def login_view(request):
             else:
                 messages.error(request, "Incorrect username or password.")
         else:
-            role = get_or_create_profile(user).role
+            profile = get_or_create_profile(user)
+            role = profile.role
             wants_admin = chosen == "admin"
             is_admin = role == Role.ADMIN
-            if wants_admin != is_admin:
+            if not profile.email_verified:
+                # Right password, but the mailbox was never opened. Say so
+                # plainly — this is the one login refusal the user can fix
+                # themselves, so it comes with the way to fix it.
+                request.session["pending_verification_user_id"] = user.pk
+                messages.error(
+                    request,
+                    "Confirm your email address before logging in. Check your "
+                    "Gmail inbox (and spam folder) for the link we sent.",
+                )
+                return redirect("users:verify_sent")
+            elif wants_admin != is_admin:
                 # Right credentials, wrong door.
                 messages.error(
                     request,
@@ -79,7 +92,11 @@ def login_view(request):
 
 
 def register(request):
-    """Create a TRAINEE account, its profile, and log the new user straight in.
+    """Create a TRAINEE account and mail it a verification link.
+
+    The user is deliberately not logged in: the account is inert until the
+    link in their inbox is followed, which is the only proof available that
+    the Gmail address they typed is one they can actually open.
 
     There is deliberately no way to register as an admin here — the role is
     fixed to TRAINEE in register_user().
@@ -99,13 +116,104 @@ def register(request):
         form = RegistrationForm(request.POST)
         if form.is_valid():
             user = register_user(form)
-            login(request, user)
-            messages.success(request, "Welcome to Fit Logger. Set up your profile below.")
-            return redirect("users:profile")
+            # Remembered so the next page can name the address, and so a resend
+            # needs no retyping. It identifies an unverified account only, and
+            # grants nothing on its own.
+            request.session["pending_verification_user_id"] = user.pk
+
+            try:
+                send_verification_email(user)
+            except Exception:
+                # The account exists but its link never went out. Saying
+                # "check your inbox" here would leave them waiting for a
+                # message that is not coming.
+                messages.error(
+                    request,
+                    "Your account was created, but we could not send the "
+                    "confirmation email. Please try again in a moment.",
+                )
+            return redirect("users:verify_sent")
     else:
         form = RegistrationForm()
 
     return render(request, "users/register.html", {"form": form})
+
+
+def verify_sent(request):
+    """"Check your inbox" — shown after signup, and after a refused login."""
+    user = _pending_user(request)
+    return render(request, "users/verify_sent.html", {"email": user.email if user else ""})
+
+
+def verify_email(request, token):
+    """Follow a verification link: activate the account and log the user in.
+
+    Opening the link is the proof of ownership, so it is also enough to sign
+    them in — they have just demonstrated control of the mailbox that the
+    account's password can be reset through.
+    """
+    user = read_token(token)
+
+    if user is None:
+        # Forged, expired, or for an account since deleted. All the same to
+        # the person holding it: they need a new link.
+        return render(request, "users/verify_failed.html", status=400)
+
+    if not user.is_active:
+        # Blocked or removed while the link sat in their inbox. Verifying is
+        # pointless and logging them in would undo an admin's decision.
+        messages.error(request, "This account is no longer active.")
+        return redirect("users:login")
+
+    profile = get_or_create_profile(user)
+    first_time = mark_verified(profile)
+
+    login(request, user, backend="django.contrib.auth.backends.ModelBackend")
+    request.session.pop("pending_verification_user_id", None)
+
+    if first_time:
+        messages.success(request, "Email confirmed. Set up your profile below.")
+        return redirect("users:profile")
+
+    messages.success(request, "Email already confirmed — you are logged in.")
+    return redirect(dashboard_url_for(user))
+
+
+@require_POST
+def resend_verification(request):
+    """Send a fresh verification link to a pending signup.
+
+    Acts only on the account already named by the session, so this cannot be
+    pointed at someone else's address to mail them unprompted.
+    """
+    user = _pending_user(request)
+
+    if user is None:
+        messages.error(request, "Start again from the login page.")
+        return redirect("users:login")
+
+    try:
+        send_verification_email(user)
+    except Exception:
+        messages.error(request, "We could not send the email. Please try again in a moment.")
+    else:
+        messages.success(request, f"A new link is on its way to {user.email}.")
+
+    return redirect("users:verify_sent")
+
+
+def _pending_user(request):
+    """The unverified account this session is waiting on, if any."""
+    from django.contrib.auth.models import User
+
+    user_id = request.session.get("pending_verification_user_id")
+    if not user_id:
+        return None
+
+    user = User.objects.filter(pk=user_id, is_active=True).first()
+    if user is None or get_or_create_profile(user).email_verified:
+        return None
+    return user
 
 
 @login_required
