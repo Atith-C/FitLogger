@@ -1041,3 +1041,72 @@ class GmailOnlyRegistrationTests(TestCase):
         )
         legacy.refresh_from_db()
         self.assertEqual(legacy.email, "legacy@example.com")
+
+
+class EmailVerifiedFieldTests(TestCase):
+    def test_new_profiles_start_unverified(self):
+        user = User.objects.create_user(
+            username="fresh", email="fresh@gmail.com", password=VALID_PASSWORD
+        )
+        self.assertFalse(UserProfile.objects.create(user=user).email_verified)
+
+    def test_verification_is_independent_of_blocking_and_removal(self):
+        """is_active already means blocked-or-removed. Verification must be a
+        separate axis, or refused_login_reason() cannot tell a user which of
+        the three actually applies to them."""
+        from .services import set_trainee_blocked
+
+        user = User.objects.create_user(
+            username="both", email="both@gmail.com", password=VALID_PASSWORD
+        )
+        profile = UserProfile.objects.create(user=user, email_verified=True)
+
+        set_trainee_blocked(user, True)
+        user.refresh_from_db()
+        profile.refresh_from_db()
+
+        self.assertFalse(user.is_active)
+        self.assertTrue(profile.email_verified)
+
+
+class GrandfatherMigrationTests(TestCase):
+    """The data migration is a one-shot that cannot be re-run against
+    production, so its logic is checked here instead."""
+
+    def _migration(self):
+        """The migration module, which cannot be imported by name because it
+        starts with a digit."""
+        import importlib
+
+        return importlib.import_module("users.migrations.0012_grandfather_existing_accounts")
+
+    def _legacy_profiles(self):
+        for i in range(3):
+            user = User.objects.create_user(
+                username=f"legacy{i}", email=f"legacy{i}@example.com", password=VALID_PASSWORD
+            )
+            UserProfile.objects.create(user=user, email_verified=False)
+
+    def test_every_existing_profile_is_marked_verified(self):
+        """Accounts that predate verification must keep working — including the
+        ones whose address is not Gmail and so could never satisfy the new
+        signup rule."""
+        from django.apps import apps
+
+        self._legacy_profiles()
+
+        self._migration().grandfather_existing_accounts(apps, None)
+
+        self.assertEqual(UserProfile.objects.filter(email_verified=False).count(), 0)
+        self.assertEqual(UserProfile.objects.count(), 3)
+
+    def test_the_migration_reverses(self):
+        from django.apps import apps
+
+        self._legacy_profiles()
+        migration = self._migration()
+
+        migration.grandfather_existing_accounts(apps, None)
+        migration.unverify_everyone(apps, None)
+
+        self.assertEqual(UserProfile.objects.filter(email_verified=True).count(), 0)

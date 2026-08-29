@@ -63,6 +63,19 @@ class UserProfile(models.Model):
     # default; the trainee opts in from their profile page.
     profile_shared = models.BooleanField(default=False)
 
+    # Whether the user has proved they can open the Gmail account they signed
+    # up with, by following the link mailed to it. False until they do.
+    #
+    # Deliberately not is_active, which already carries two other meanings:
+    # blocked (an admin barred a live account) and removed (soft deletion).
+    # Folding a third state into it would make those three indistinguishable
+    # and break refused_login_reason(), which explains to the user why they
+    # were turned away.
+    #
+    # Accounts that predate verification were grandfathered to True by the
+    # migration that added this field, so no existing user is locked out.
+    email_verified = models.BooleanField(default=False)
+
     # Soft deletion. Set when an admin removes the account: every row is kept,
     # but the trainee disappears from admin lists and counts and cannot log in.
     # A hard delete would cascade through their plans, sessions, sets,
