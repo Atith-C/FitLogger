@@ -21,9 +21,12 @@
         <p>We've sent you a confirmation link.</p>
       {% endif %}
 
-      {# Mail from a gmail.com sender cannot be DKIM-signed for that domain, so
-         a share of it lands outside the inbox. Saying so up front prevents the
-         obvious support question. #}
+      {% comment %}
+        Mail from a gmail.com sender cannot be DKIM-signed for that domain, so
+        a share of it lands outside the inbox. Saying so up front prevents the
+        obvious support question. {# #} is single-line only — a multi-line one
+        renders as visible page text.
+      {% endcomment %}
       <p class="text-secondary small">
         Not there? Check your <strong>Spam</strong> and <strong>Promotions</strong>
         folders — the link expires in 24 hours.

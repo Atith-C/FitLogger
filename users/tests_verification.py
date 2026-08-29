@@ -187,3 +187,25 @@ class VerificationNotifiesAdminsTests(TestCase):
         self.client.get(link)  # a second click must not announce them twice
 
         self.assertEqual(self._notifications().count(), 1)
+
+
+class NoRawTemplateSyntaxTests(TestCase):
+    """A multi-line {# ... #} is not a comment — Django only treats it as one
+    when it opens and closes on the same line — so it renders to the visitor
+    as page text. This caught exactly that on the verify page."""
+
+    def test_the_auth_pages_leak_no_template_syntax(self):
+        register(self.client)
+
+        for name in [
+            "users:login",
+            "users:register",
+            "users:verify_sent",
+            "users:password_reset",
+            "users:password_reset_done",
+            "users:password_reset_complete",
+        ]:
+            with self.subTest(page=name):
+                body = self.client.get(reverse(name)).content.decode()
+                for leak in ["{#", "#}", "{%", "%}"]:
+                    self.assertNotIn(leak, body)
