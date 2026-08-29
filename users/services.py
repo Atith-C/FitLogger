@@ -248,6 +248,43 @@ def restore_trainee(trainee):
     return profile
 
 
+def username_for_login(value):
+    """Resolve what was typed in the login box to a username.
+
+    Anything without an "@" is already a username and is returned untouched.
+    An address is matched on its normalized form, so someone who signed up as
+    "a.dith+gym@gmail.com" can log in as "adith@gmail.com" — Gmail treats them
+    as one mailbox, so the login box has to as well.
+
+    Returns the input unchanged when nothing matches, letting authenticate()
+    fail exactly as it would for a wrong username. Nothing here reveals
+    whether an account exists.
+    """
+    from django.contrib.auth.models import User
+
+    from .validators import normalize_gmail
+
+    if "@" not in value:
+        return value
+
+    target = normalize_gmail(value)
+    if target:
+        matches = [
+            user
+            for user in User.objects.filter(email__icontains="@g").only("username", "email")
+            if normalize_gmail(user.email) == target
+        ]
+    else:
+        # Accounts that predate the Gmail-only rule keep their address, and
+        # their owners can still sign in with it.
+        matches = list(User.objects.filter(email__iexact=value.strip()).only("username"))
+
+    # Historic data can hold the same address twice; User.email was never
+    # unique. An ambiguous address resolves to nothing rather than guessing
+    # which account the person meant — their username still works.
+    return matches[0].username if len(matches) == 1 else value
+
+
 def refused_login_reason(username, password):
     """Why a login was refused: "blocked", "removed", or None.
 

@@ -13,6 +13,7 @@ from .services import (
     register_user,
     set_profile_sharing,
     update_profile,
+    username_for_login,
 )
 from .verification import mark_verified, read_token, send_verification_email
 
@@ -40,15 +41,20 @@ def login_view(request):
 
     username = ""
     if request.method == "POST":
+        # What was typed, kept as-is so the form redisplays it unchanged.
         username = request.POST.get("username", "").strip()
         password = request.POST.get("password", "")
-        user = authenticate(request, username=username, password=password)
+
+        # A forgotten username is the most common way in here, so the login box
+        # accepts the Gmail address too.
+        account = username_for_login(username)
+        user = authenticate(request, username=account, password=password)
 
         if user is None:
             # A blocked or removed account fails authenticate() exactly like a
             # wrong password, so say which — but only to someone whose password
             # was right. See refused_login_reason().
-            reason = refused_login_reason(username, password)
+            reason = refused_login_reason(account, password)
             if reason == "blocked":
                 messages.error(
                     request,

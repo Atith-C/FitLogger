@@ -55,7 +55,7 @@
         <input type="hidden" name="as_role" value="{{ as_role }}">
 
         <div class="mb-3">
-          <label for="id_username" class="form-label">Username</label>
+          <label for="id_username" class="form-label">Username or Gmail address</label>
           <input type="text" name="username" id="id_username"
                  class="form-control form-control-lg" autocomplete="username" required
                  value="{{ username|default_if_none:'' }}">
