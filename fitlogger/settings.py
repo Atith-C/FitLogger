@@ -115,7 +115,11 @@ DATABASES = {
         "HOST": os.environ.get("DATABASE_HOST", "localhost"),
         "PORT": os.environ.get("DATABASE_PORT", "5432"),
         "OPTIONS": {
-            "sslmode": "require",
+            # Neon requires SSL, so "require" stays the default and production
+            # is unchanged. Overridable because a local PostgreSQL is usually
+            # built without SSL, and refusing to connect to it forces local
+            # development and the test runner onto the production database.
+            "sslmode": os.environ.get("DATABASE_SSLMODE", "require"),
         },
     }
 }
