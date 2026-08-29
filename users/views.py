@@ -8,7 +8,17 @@ from django.urls import reverse_lazy
 from django.views.decorators.http import require_POST
 
 from .decorators import trainee_required
+from .ratelimit import client_ip, over_limit
 from .recovery import ForgotAccountForm, send_password_changed_email
+from .validators import normalize_gmail
+
+# Caps on the endpoints that send mail to an address the submitter chose.
+# Set well above what a real person does and well below what makes the app
+# useful as a spam relay or a way to exhaust the daily sending quota.
+SIGNUPS_PER_IP_PER_HOUR = 5
+RESENDS_PER_ACCOUNT_PER_HOUR = 3
+RESETS_PER_ADDRESS_PER_HOUR = 3
+RESETS_PER_IP_PER_HOUR = 10
 from .forms import RegistrationForm, UserProfileForm
 from .models import Role
 from .services import (
@@ -125,6 +135,16 @@ def register(request):
     if request.method == "POST":
         form = RegistrationForm(request.POST)
         if form.is_valid():
+            # Counted only once the form is valid, so a visitor fumbling the
+            # password rules is not locked out for trying.
+            if over_limit(f"signup:{client_ip(request)}", SIGNUPS_PER_IP_PER_HOUR):
+                messages.error(
+                    request,
+                    "Too many accounts created from here recently. "
+                    "Please try again in an hour.",
+                )
+                return render(request, "users/register.html", {"form": form}, status=429)
+
             user = register_user(form)
             # Remembered so the next page can name the address, and so a resend
             # needs no retyping. It identifies an unverified account only, and
@@ -202,6 +222,16 @@ def resend_verification(request):
         messages.error(request, "Start again from the login page.")
         return redirect("users:login")
 
+    # Per account, not per IP: the cap exists to stop one mailbox being
+    # buried, and the account is what identifies that mailbox.
+    if over_limit(f"resend:{user.pk}", RESENDS_PER_ACCOUNT_PER_HOUR):
+        messages.error(
+            request,
+            "We have already sent you several links. Check your spam folder, "
+            "and try again in an hour.",
+        )
+        return redirect("users:verify_sent")
+
     try:
         send_verification_email(user)
     except Exception:
@@ -240,6 +270,28 @@ class ForgotAccountView(auth_views.PasswordResetView):
     html_email_template_name = "users/emails/password_reset.html"
     success_url = reverse_lazy("users:password_reset_done")
     extra_email_context = {"expiry_hours": settings.PASSWORD_RESET_TIMEOUT // 3600}
+
+    def form_valid(self, form):
+        """Cap the sending, without changing what the page says.
+
+        Both caps land on the same success page as an ordinary request. Saying
+        "you have asked too often for that address" would confirm the address
+        is registered, which is exactly what this form refuses to reveal —
+        so a limited request simply sends nothing.
+        """
+        address = form.cleaned_data["email"]
+        flooding_one_mailbox = over_limit(
+            f"reset-email:{normalize_gmail(address) or address.lower()}",
+            RESETS_PER_ADDRESS_PER_HOUR,
+        )
+        sweeping_many = over_limit(
+            f"reset-ip:{client_ip(self.request)}", RESETS_PER_IP_PER_HOUR
+        )
+
+        if flooding_one_mailbox or sweeping_many:
+            return redirect(self.get_success_url())
+
+        return super().form_valid(form)
 
 
 class SetNewPasswordView(auth_views.PasswordResetConfirmView):

@@ -128,6 +128,23 @@ DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
 
 # --------------------------------------------------------------------------
+# Cache — rate-limit counters
+# --------------------------------------------------------------------------
+
+# PostgreSQL rather than Django's default local-memory cache. The application
+# runs on serverless functions, where consecutive requests may be handled by
+# different instances: an in-memory counter would be near-empty on every hit
+# and cap nothing. The table is created by a migration, so a deploy needs no
+# extra command.
+CACHES = {
+    "default": {
+        "BACKEND": "django.core.cache.backends.db.DatabaseCache",
+        "LOCATION": "fitlogger_cache",
+    }
+}
+
+
+# --------------------------------------------------------------------------
 # Authentication
 # --------------------------------------------------------------------------
 
